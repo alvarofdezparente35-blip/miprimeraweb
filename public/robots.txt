@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Sitemap: https://lumicharge.es/sitemap.xml
+
+# Disallow admin pages
+Disallow: /admin
+Disallow: /carrito
+Disallow: /api/

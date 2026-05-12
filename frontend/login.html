@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iniciar sesión — LumiCharge</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&display=swap"></noscript>
+<link rel="stylesheet" href="/src/style.css">
+<style>
+  * { box-sizing: border-box; }
+  body { padding-top:60px; min-height:100vh; display:flex; flex-direction:column; background: radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.03) 0%, transparent 70%); }
+  .auth-wrap { width:min(80rem, 94%); margin:0 auto; padding:2.5rem 5% 3rem; flex:1; }
+  .auth-header { text-align:center; margin-bottom:2rem; }
+  .auth-header .icon { font-size:3rem; display:block; margin-bottom:.5rem; }
+  .auth-header h1 { font-size:1.8rem; font-weight:700; letter-spacing:-.02em; }
+  .auth-header p { color:var(--text-muted); font-size:.95rem; margin-top:.4rem; line-height:1.5; max-width:36rem; margin-left:auto; margin-right:auto; }
+  .auth-box { background:linear-gradient(135deg,var(--dark-3),var(--dark-2)); border:0.5px solid var(--border); border-radius:1rem; padding:2.5rem; position:relative; overflow:hidden; }
+  .auth-box::before { content:''; position:absolute; top:-3.75rem; right:-3.75rem; width:11.25rem; height:11.25rem; background:radial-gradient(circle,rgba(201,168,76,0.06),transparent 70%); border-radius:50%; pointer-events:none; }
+  .auth-box .field { margin-bottom:1.2rem; }
+  .auth-box label { display:block; font-size:.8rem; font-weight:600; color:var(--text-muted); margin-bottom:.4rem; letter-spacing:.03em; text-transform:uppercase; }
+  .auth-box .input-wrap { position:relative; display:flex; align-items:center; }
+  .auth-box .input-wrap input {
+    width:100%; background:var(--dark-4); border:1.5px solid rgba(255,255,255,.08); border-radius:.625rem;
+    padding:1rem 1rem; color:var(--text); font-size:1rem; font-family:'Arimo',sans-serif;
+    transition:border-color .25s,box-shadow .25s,background .25s;
+  }
+  .auth-box .input-wrap input:focus { outline:none; border-color:var(--gold); background:var(--dark-3); box-shadow:0 0 0 3px rgba(201,168,76,.08); }
+  .auth-box .input-wrap input::placeholder { color:rgba(155,154,168,.4); }
+  .auth-box .input-wrap .toggle-pass {
+    position:absolute; right:.75rem; background:none; border:none; color:var(--text-muted);
+    font-size:.9rem; cursor:pointer; padding:.25rem; opacity:.5; transition:opacity .2s; line-height:1;
+  }
+  .auth-box .input-wrap .toggle-pass:hover { opacity:1; }
+  .auth-box .btn-login {
+    width:100%; background:linear-gradient(135deg,var(--gold),var(--gold-light)); color:var(--dark);
+    border:none; padding:1rem; border-radius:.625rem; font-size:1rem; font-weight:700;
+    cursor:pointer; margin-top:.5rem; font-family:'Arimo',sans-serif;
+    transition:transform .2s,box-shadow .2s; position:relative;
+  }
+  .auth-box .btn-login:hover { transform:translateY(-1px); box-shadow:0 0.5rem 1.5rem rgba(201,168,76,.25); }
+  .auth-box .btn-login:active { transform:translateY(0); }
+  .auth-box .btn-login:disabled { opacity:.6; cursor:not-allowed; transform:none; box-shadow:none; }
+  .auth-box .btn-login .spinner { display:none; width:1.125rem; height:1.125rem; border:.125rem solid rgba(10,10,15,.3); border-top-color:var(--dark); border-radius:50%; animation:spin .6s linear infinite; margin:0 auto; }
+  .auth-box .btn-login.loading .spinner { display:block; }
+  .auth-box .btn-login.loading .btn-text { display:none; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .auth-box .error-msg {
+    background:rgba(231,76,60,.08); border:0.5px solid rgba(231,76,60,.2);
+    border-radius:0.5rem; padding:.7rem .9rem; color:#E74C3C; font-size:.85rem;
+    margin-bottom:1rem; display:none; line-height:1.4;
+  }
+  .auth-box .error-msg.show { display:block; animation:shake .3s ease; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-.375rem)} 75%{transform:translateX(.375rem)} }
+  .auth-divider { display:flex; align-items:center; gap:1rem; margin:1.2rem 0; color:var(--text-muted); font-size:.8rem; }
+  .auth-divider::before,.auth-divider::after { content:''; flex:1; height:.5px; background:rgba(255,255,255,.06); }
+  .auth-box .footer-links { display:flex; justify-content:center; gap:1.5rem; margin-top:1.2rem; font-size:.85rem; flex-wrap:wrap; }
+  .auth-box .footer-links a { color:var(--text-muted); text-decoration:none; transition:color .2s; }
+  .auth-box .footer-links a:hover { color:var(--gold); }
+  .auth-box .footer-links .reg { color:var(--gold); font-weight:600; }
+  .auth-benefits { display:flex; gap:.8rem; margin-top:1.5rem; justify-content:center; flex-wrap:wrap; }
+  .auth-benefits span { font-size:.75rem; color:var(--text-muted); background:rgba(255,255,255,.03); padding:.35rem .8rem; border-radius:1.25rem; border:0.5px solid rgba(255,255,255,.04); }
+  .nav-bar { display:flex; align-items:center; justify-content:space-between; padding:.85rem 5%; background:rgba(10,10,15,.95); backdrop-filter:blur(20px); border-bottom:0.5px solid var(--border); position:fixed; top:0; left:0; right:0; z-index:999; }
+  .nav-bar a { color:var(--gold); text-decoration:none; font-family:'Arimo',sans-serif; font-size:1.2rem; font-weight:700; letter-spacing:.15em; }
+  .nav-bar .back { color:var(--text-muted); font-size:.82rem; letter-spacing:.08em; text-transform:uppercase; transition:color .2s; }
+  .nav-bar .back:hover { color:var(--gold); }
+  @media (max-width:48rem) { .auth-wrap { padding:1.5rem 4%; } .auth-box { padding:1.5rem; } .auth-header .icon { font-size:2.5rem; } }
+</style>
+</head>
+<body>
+<nav class="nav-bar"><a href="/">LUMICHARGE</a><a href="/" class="back">← Volver a la tienda</a></nav>
+<div class="auth-wrap">
+  <div class="auth-header">
+    <span class="icon">🔐</span>
+    <h1>Iniciar sesión</h1>
+    <p>Accede a tu cuenta para ver tus pedidos, gestionar tu dirección y mucho más.</p>
+  </div>
+  <div class="auth-box">
+    <div class="error-msg" id="loginError"></div>
+
+    <div class="field">
+      <label>Correo electrónico</label>
+      <div class="input-wrap">
+        <input type="email" id="loginEmail" placeholder="tu@email.com" autocomplete="email" spellcheck="false" autocapitalize="off">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Contraseña</label>
+      <div class="input-wrap">
+        <input type="password" id="loginPass" placeholder="Introduce tu contraseña" autocomplete="current-password">
+        <button class="toggle-pass" id="togglePass" type="button" onclick="togglePassword()" aria-label="Mostrar contraseña">👁️</button>
+      </div>
+    </div>
+
+    <button class="btn-login" id="loginBtn" onclick="customerLogin()">
+      <span class="btn-text">Iniciar sesión</span>
+      <span class="spinner"></span>
+    </button>
+
+    <div class="auth-divider">o</div>
+
+    <div class="footer-links">
+      <a href="/register" class="reg">Crear cuenta nueva</a>
+      <a href="/tracking">Seguir pedido sin cuenta</a>
+    </div>
+  </div>
+
+  <div class="auth-benefits">
+    <span>✅ Historial de pedidos</span>
+    <span>📋 Dirección guardada</span>
+    <span>🔒 Pago seguro</span>
+  </div>
+</div>
+
+<script>
+(function() {
+  const API = window.location.origin;
+  const emailInput = document.getElementById('loginEmail');
+  const passInput = document.getElementById('loginPass');
+  const errorEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+
+  window.togglePassword = function() {
+    const type = passInput.type === 'password' ? 'text' : 'password';
+    passInput.type = type;
+    document.getElementById('togglePass').textContent = type === 'password' ? '👁️' : '👁️‍🗨️';
+  };
+
+  window.customerLogin = async function() {
+    const email = emailInput.value.trim();
+    const pass = passInput.value;
+
+    errorEl.classList.remove('show');
+    if (!email || !pass) {
+      showError('Por favor, completa todos los campos.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showError('El formato del email no es válido.');
+      return;
+    }
+    if (pass.length < 6) {
+      showError('La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(API + '/api/customer/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass }),
+      });
+      const data = await res.json();
+
+      if (data.token) {
+        localStorage.setItem('lumicharge_token', data.token);
+        window.location.href = '/account';
+      } else {
+        showError(data.error || 'Credenciales incorrectas. Inténtalo de nuevo.');
+        passInput.value = '';
+        passInput.focus();
+      }
+    } catch {
+      showError('Error de conexión. Verifica tu internet e inténtalo de nuevo.');
+    } finally {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  };
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.classList.add('show');
+  }
+
+  emailInput.addEventListener('keydown', e => { if (e.key === 'Enter') passInput.focus(); });
+  passInput.addEventListener('keydown', e => { if (e.key === 'Enter') customerLogin(); });
+})();
+</script>
+</body>
+</html>

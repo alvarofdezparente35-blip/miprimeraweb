@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LumiCharge — Panel Admin</title>
+<meta name="robots" content="noindex, nofollow">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0A0A0F; color: #F0EDE8; font-size: 14px; min-height: 100vh;
+  }
+  .login-wrap { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:2rem; }
+  .login-box { background:#12121A; border:0.5px solid rgba(201,168,76,.2); border-radius:12px; padding:2.5rem; width:100%; max-width:380px; }
+  .login-box h1 { font-size:1.4rem; color:#C9A84C; margin-bottom:.3rem; }
+  .login-box p { color:#9B9AA8; font-size:.85rem; margin-bottom:1.5rem; }
+  .login-box input { width:100%; background:#1A1A26; border:0.5px solid rgba(255,255,255,.15); border-radius:6px; padding:.75rem 1rem; color:#F0EDE8; font-size:.9rem; margin-bottom:.8rem; }
+  .login-box input:focus { outline:none; border-color:#C9A84C; }
+  .login-box .error { color:#E74C3C; font-size:.82rem; margin-bottom:.8rem; display:none; }
+  .login-box button { width:100%; background:#C9A84C; color:#0A0A0F; border:none; padding:.85rem; border-radius:6px; font-size:.9rem; font-weight:600; cursor:pointer; }
+  .login-box button:hover { background:#E8C97A; }
+
+  .admin-wrap { display:none; }
+  .admin-wrap.open { display:block; }
+  .topbar {
+    background:#12121A; border-bottom:0.5px solid rgba(201,168,76,.15);
+    padding:.8rem 2rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem;
+  }
+  .topbar h2 { color:#C9A84C; font-size:1.1rem; letter-spacing:.1em; }
+  .topbar .user { color:#9B9AA8; font-size:.82rem; }
+  .topbar .logout { background:transparent; color:#E74C3C; border:0.5px solid rgba(231,76,60,.3); padding:.4rem 1rem; border-radius:4px; cursor:pointer; font-size:.82rem; }
+  .topbar .logout:hover { background:rgba(231,76,60,.1); }
+  .topbar .actions { display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; }
+  .topbar .export-btn { background:rgba(46,204,113,.1); color:#2ECC71; border:0.5px solid rgba(46,204,113,.25); padding:.4rem .8rem; border-radius:4px; cursor:pointer; font-size:.82rem; text-decoration:none; }
+  .topbar .export-btn:hover { background:rgba(46,204,113,.2); }
+  .topbar .ws-badge { width:8px; height:8px; border-radius:50%; background:#555; display:inline-block; }
+  .topbar .ws-badge.on { background:#2ECC71; }
+
+  .content { padding:2rem; max-width:1400px; margin:0 auto; }
+  .stats { display:grid; grid-template-columns:repeat(5,1fr); gap:1rem; margin-bottom:2rem; }
+  .stat-card { background:#12121A; border:0.5px solid rgba(201,168,76,.15); border-radius:8px; padding:1.2rem; position:relative; }
+  .stat-card .num { font-size:1.8rem; font-weight:700; color:#C9A84C; display:block; }
+  .stat-card .lbl { font-size:.75rem; color:#9B9AA8; margin-top:.2rem; display:block; }
+  .stat-card .trend { font-size:.7rem; position:absolute; top:.6rem; right:.8rem; }
+
+  .chart-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:2rem; }
+  .chart-box { background:#12121A; border:0.5px solid rgba(201,168,76,.1); border-radius:8px; padding:1rem; }
+  .chart-box canvas { max-height:200px; }
+
+  .toolbar { display:flex; gap:.8rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center; }
+  .tabs { display:flex; gap:0; margin-bottom:1.5rem; border-bottom:0.5px solid rgba(255,255,255,.06); }
+  .tab { padding:.7rem 1.5rem; font-size:.82rem; color:#9B9AA8; cursor:pointer; border-bottom:2px solid transparent; transition:all .2s; background:none; border-top:none; border-left:none; border-right:none; font-family:inherit; }
+  .tab:hover { color:var(--gold); }
+  .tab.active { color:var(--gold); border-bottom-color:#C9A84C; }
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
+
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:999; display:none; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
+  .modal-overlay.open { display:flex; }
+  .modal-box { background:#12121A; border:0.5px solid rgba(201,168,76,.2); border-radius:12px; padding:2rem; width:90%; max-width:500px; max-height:90vh; overflow-y:auto; }
+  .modal-box h3 { font-size:1.1rem; color:#C9A84C; margin-bottom:1rem; }
+  .modal-box label { display:block; font-size:.78rem; color:#9B9AA8; margin-bottom:.3rem; margin-top:.8rem; }
+  .modal-box input, .modal-box textarea, .modal-box select { width:100%; background:#1A1A26; border:0.5px solid rgba(255,255,255,.15); border-radius:6px; padding:.6rem .8rem; color:#F0EDE8; font-size:.85rem; font-family:inherit; }
+  .modal-box input:focus, .modal-box textarea:focus { outline:none; border-color:#C9A84C; }
+  .modal-box textarea { resize:vertical; min-height:60px; }
+  .modal-actions { display:flex; gap:.8rem; margin-top:1.2rem; justify-content:flex-end; }
+  .modal-actions button { padding:.6rem 1.2rem; border-radius:6px; font-size:.85rem; cursor:pointer; font-family:inherit; }
+  .modal-actions .btn-save { background:#C9A84C; color:#0A0A0F; border:none; font-weight:600; }
+  .modal-actions .btn-save:hover { background:#E8C97A; }
+  .modal-actions .btn-cancel { background:transparent; color:#9B9AA8; border:0.5px solid rgba(255,255,255,.15); }
+  .modal-actions .btn-cancel:hover { color:#F0EDE8; }
+
+  .btn-add { background:rgba(201,168,76,.1); color:#C9A84C; border:0.5px solid rgba(201,168,76,.25); padding:.5rem 1rem; border-radius:6px; cursor:pointer; font-size:.82rem; font-family:inherit; }
+  .btn-add:hover { background:rgba(201,168,76,.2); }
+  .btn-sm { padding:.25rem .5rem; font-size:.75rem; border-radius:4px; cursor:pointer; border:0.5px solid rgba(255,255,255,.15); background:transparent; color:#9B9AA8; font-family:inherit; }
+  .btn-sm:hover { color:#F0EDE8; }
+  .btn-sm.danger { color:#E74C3C; border-color:rgba(231,76,60,.25); }
+  .btn-sm.danger:hover { background:rgba(231,76,60,.1); }
+
+  .toolbar input { background:#1A1A26; border:0.5px solid rgba(255,255,255,.15); border-radius:6px; padding:.6rem .8rem; color:#F0EDE8; font-size:.85rem; flex:1; min-width:200px; }
+  .toolbar input:focus { outline:none; border-color:#C9A84C; }
+  .toolbar .badge { background:rgba(231,76,60,.12); color:#E74C3C; font-size:.72rem; padding:.2rem .6rem; border-radius:10px; white-space:nowrap; animation:pulse 1.5s infinite; display:none; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  table { width:100%; border-collapse:collapse; background:#12121A; border:0.5px solid rgba(255,255,255,.06); border-radius:8px; overflow:hidden; }
+  th { text-align:left; padding:.8rem 1rem; font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; color:#9B9AA8; border-bottom:0.5px solid rgba(255,255,255,.06); background:#1A1A26; }
+  td { padding:.7rem 1rem; border-bottom:0.5px solid rgba(255,255,255,.04); font-size:.85rem; color:#F0EDE8; }
+  .status { display:inline-block; padding:.15rem .6rem; border-radius:10px; font-size:.72rem; font-weight:600; }
+  .status.pending { background:rgba(243,156,18,.12); color:#F39C12; }
+  .status.paid { background:rgba(46,204,113,.12); color:#2ECC71; }
+  .status.shipped { background:rgba(52,152,219,.12); color:#3498DB; }
+  .status.delivered { background:rgba(46,204,113,.12); color:#2ECC71; }
+  .status.cancelled { background:rgba(231,76,60,.12); color:#E74C3C; }
+  .actions select { background:#1A1A26; border:0.5px solid rgba(255,255,255,.15); border-radius:4px; color:#F0EDE8; padding:.3rem; font-size:.78rem; }
+  .actions select option { background:#1A1A26; }
+  .empty { text-align:center; padding:3rem; color:#9B9AA8; font-size:.9rem; }
+  .highlight { animation:flash 1s; }
+  @keyframes flash { 0%{background:rgba(201,168,76,.15)} 100%{background:transparent} }
+  .row-new td { background:rgba(46,204,113,.04); }
+
+  .notif-toast {
+    position:fixed; top:1rem; right:1rem; z-index:9999;
+    background:rgba(46,204,113,.15); border:0.5px solid rgba(46,204,113,.3);
+    border-radius:8px; padding:.7rem 1rem; font-size:.82rem; color:#2ECC71;
+    transform:translateX(120%); transition:transform .4s cubic-bezier(.16,1,.3,1);
+    pointer-events:none;
+  }
+  .notif-toast.show { transform:translateX(0); pointer-events:all; }
+
+  @media (max-width:900px) {
+    .stats { grid-template-columns:repeat(3,1fr); }
+    .chart-row { grid-template-columns:1fr; }
+  }
+  @media (max-width:600px) {
+    .stats { grid-template-columns:repeat(2,1fr); }
+    .content { padding:1rem; }
+    .topbar { padding:.6rem 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="login-wrap" id="loginWrap">
+  <div class="login-box">
+    <h1>🔐 LumiCharge</h1>
+    <p>Panel de administración</p>
+    <div class="error" id="loginError">Contraseña incorrecta</div>
+    <input type="password" id="loginPass" placeholder="Contraseña" autocomplete="current-password">
+    <button onclick="adminLogin()">Acceder</button>
+  </div>
+</div>
+
+<div class="admin-wrap" id="adminWrap">
+  <div class="notif-toast" id="notifToast">🔔 Nuevo pedido recibido</div>
+  <div class="topbar">
+    <h2>⚡ LumiCharge Admin</h2>
+    <div class="actions">
+      <span class="user" id="userInfo">admin</span>
+      <span class="ws-badge" id="wsBadge" title="WebSocket"></span>
+      <button class="export-btn" id="mtBtn" onclick="toggleMaintenance()" style="display:none;">🔧 Mantenimiento</button>
+      <a class="export-btn" id="exportBtn" href="#" onclick="exportCSV()">📥 Exportar CSV</a>
+      <button class="logout" onclick="adminLogout()">Cerrar sesión</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="stats">
+      <div class="stat-card"><span class="num" id="sTotal">0</span><span class="lbl">Pedidos totales</span></div>
+      <div class="stat-card"><span class="num" id="sRevenue">€0</span><span class="lbl">Ingresos</span></div>
+      <div class="stat-card"><span class="num" id="sPending">0</span><span class="lbl">Pendientes</span></div>
+      <div class="stat-card"><span class="num" id="sShipped">0</span><span class="lbl">Enviados</span></div>
+      <div class="stat-card"><span class="num" id="sWeek">0</span><span class="lbl">Esta semana</span></div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-box"><canvas id="statusChart"></canvas></div>
+      <div class="chart-box"><canvas id="revenueChart"></canvas></div>
+    </div>
+    <div class="tabs">
+    <button class="tab active" onclick="switchTab('orders', this)">📦 Pedidos</button>
+    <button class="tab" onclick="switchTab('products', this)">📋 Productos</button>
+    <button class="tab" onclick="switchTab('coupons', this)">🏷️ Cupones</button>
+    <button class="tab" onclick="switchTab('blog', this)">📝 Blog</button>
+    <button class="tab" onclick="switchTab('newsletter', this)">📬 Newsletter</button>
+    <button class="tab" onclick="switchTab('reviews', this)">⭐ Reseñas</button>
+  </div>
+
+  <!-- ── ORDERS TAB ── -->
+  <div class="tab-content active" id="tabOrders">
+    <div class="toolbar">
+      <input type="text" id="searchInput" placeholder="🔍 Buscar por nombre, email o ID..." oninput="filterOrders()">
+      <span class="badge" id="newOrderBadge">🆕 Nuevo</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Pedido</th>
+          <th>Cliente</th>
+          <th>Email</th>
+          <th>Total</th>
+          <th>Estado</th>
+          <th>Fecha</th>
+          <th>Acción</th>
+          <th>PDF</th>
+        </tr>
+      </thead>
+      <tbody id="ordersBody"></tbody>
+    </table>
+    <div class="empty" id="emptyState">No hay pedidos aún.</div>
+  </div>
+
+  <!-- ── PRODUCTS TAB ── -->
+  <div class="tab-content" id="tabProducts">
+    <div class="toolbar">
+      <button class="btn-add" onclick="openProductModal()">+ Nuevo producto</button>
+      <span style="color:#9B9AA8;font-size:.82rem;" id="productCount"></span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Nombre</th>
+          <th>Precio</th>
+          <th>Stock</th>
+          <th>Categoría</th>
+          <th>Activo</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="productsBody"></tbody>
+    </table>
+    <div class="empty" id="emptyProducts">No hay productos. Crea el primero.</div>
+  </div>
+</div>
+
+  <!-- ── COUPONS TAB ── -->
+  <div class="tab-content" id="tabCoupons">
+    <div class="toolbar">
+      <button class="btn-add" onclick="openCouponModal()">+ Nuevo cupón</button>
+      <span style="color:#9B9AA8;font-size:.82rem;" id="couponCount"></span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Descuento</th>
+          <th>Tipo</th>
+          <th>Mínimo</th>
+          <th>Usos</th>
+          <th>Expira</th>
+          <th>Activo</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="couponsBody"></tbody>
+    </table>
+    <div class="empty" id="emptyCoupons">No hay cupones. Crea el primero.</div>
+  </div>
+</div>
+
+<!-- ── COUPON MODAL ── -->
+<div class="modal-overlay" id="couponModal">
+  <div class="modal-box">
+    <h3 id="couponModalTitle">Nuevo cupón</h3>
+    <label>Código *</label>
+    <input type="text" id="cfCode" placeholder="LUMI10" style="text-transform:uppercase;letter-spacing:.1em;">
+    <label>Descuento *</label>
+    <input type="number" id="cfDiscount" step="0.01" min="0" placeholder="10">
+    <label>Tipo</label>
+    <select id="cfType">
+      <option value="percentage">Porcentaje (%)</option>
+      <option value="fixed">Fijo (€)</option>
+    </select>
+    <label>Compra mínima (€)</label>
+    <input type="number" id="cfMin" step="0.01" min="0" placeholder="0">
+    <label>Usos máximos (0 = ilimitados)</label>
+    <input type="number" id="cfUses" min="0" placeholder="100">
+    <label>Fecha de expiración (opcional)</label>
+    <input type="date" id="cfExpires">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeCouponModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveCoupon()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+  <!-- ── BLOG TAB ── -->
+  <div class="tab-content" id="tabBlog">
+    <div class="toolbar">
+      <button class="btn-add" onclick="openPostModal()">+ Nuevo artículo</button>
+      <span style="color:#9B9AA8;font-size:.82rem;" id="postCount"></span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Título</th>
+          <th>Slug</th>
+          <th>Publicado</th>
+          <th>Fecha</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="postsBody"></tbody>
+    </table>
+    <div class="empty" id="emptyPosts">No hay artículos. Escribe el primero.</div>
+  </div>
+</div>
+
+  <!-- ── NEWSLETTER TAB ── -->
+  <div class="tab-content" id="tabNewsletter">
+    <div class="toolbar">
+      <span style="color:#9B9AA8;font-size:.82rem;" id="subCount"></span>
+      <a class="export-btn" id="exportSubsBtn" href="#" onclick="exportSubs()">📥 Exportar CSV</a>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Nombre</th>
+          <th>Origen</th>
+          <th>Fecha</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="subsBody"></tbody>
+    </table>
+    <div class="empty" id="emptySubs">No hay suscriptores aún.</div>
+  </div>
+
+  <!-- ── REVIEWS TAB ── -->
+  <div class="tab-content" id="tabReviews">
+    <div class="toolbar">
+      <span style="color:#9B9AA8;font-size:.82rem;" id="revCount"></span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Cliente</th>
+          <th>Valoración</th>
+          <th>Comentario</th>
+          <th>Fecha</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="revsBody"></tbody>
+    </table>
+    <div class="empty" id="emptyRevs">No hay reseñas aún.</div>
+  </div>
+
+  <!-- ── POST MODAL ── -->
+<div class="modal-overlay" id="postModal">
+  <div class="modal-box" style="max-width:700px;">
+    <h3 id="postModalTitle">Nuevo artículo</h3>
+    <label>Título *</label>
+    <input type="text" id="pfTitle" placeholder="Cómo organizar tu escritorio">
+    <label>Slug (URL) — dejar vacío para auto-generar</label>
+    <input type="text" id="pfSlug" placeholder="organizar-escritorio">
+    <label>Extracto (para las tarjetas y SEO)</label>
+    <textarea id="pfExcerpt" rows="2" placeholder="Breve descripción del artículo..."></textarea>
+    <label>Contenido * (HTML básico permitido)</label>
+    <textarea id="pfContent" rows="12" style="font-family:monospace;font-size:.82rem;" placeholder="<p>Escribe aquí el contenido...</p>"></textarea>
+    <label>Icono (emoji)</label>
+    <input type="text" id="pfPostImage" placeholder="📰" maxlength="2">
+    <label>Autor</label>
+    <input type="text" id="pfAuthor" placeholder="LumiCharge">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closePostModal()">Cancelar</button>
+      <button class="btn-save" onclick="savePost()">Guardar y publicar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── PRODUCT MODAL ── -->
+<div class="modal-overlay" id="productModal">
+  <div class="modal-box">
+    <h3 id="modalTitle">Nuevo producto</h3>
+    <label>Nombre *</label>
+    <input type="text" id="pfName" placeholder="LumiCharge Pro">
+    <label>Descripción</label>
+    <textarea id="pfDesc" placeholder="Descripción del producto..."></textarea>
+    <label>Precio (€) *</label>
+    <input type="number" id="pfPrice" step="0.01" min="0" placeholder="25.00">
+    <label>Stock</label>
+    <input type="number" id="pfStock" min="0" placeholder="10">
+    <label>Categoría</label>
+    <select id="pfCat">
+      <option value="cargadores">Cargadores</option>
+      <option value="accesorios">Accesorios</option>
+      <option value="packs">Packs</option>
+      <option value="general">General</option>
+    </select>
+    <label>Icono (emoji)</label>
+    <input type="text" id="pfImage" placeholder="⚡" maxlength="2">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeProductModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveProduct()">Guardar</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+const API = window.location.origin;
+let csrfToken = null;
+let allOrders = [];
+let statusChart = null;
+let revenueChart = null;
+let socket = null;
+
+async function apiCall(path, options = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+  const res = await fetch(API + path, { credentials: 'include', ...options, headers: { ...headers, ...options.headers } });
+  if (res.status === 401) {
+    const data = await res.json();
+    if (data.error === 'TOKEN_EXPIRED') {
+      const refresh = await fetch(API + '/api/auth/refresh', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' } });
+      if (refresh.ok) return apiCall(path, options);
+    }
+    showLogin(); return null;
+  }
+  return res.json();
+}
+
+async function adminLogin() {
+  const pass = document.getElementById('loginPass').value;
+  if (!pass) return;
+  try {
+    const res = await fetch(API + '/api/auth/login', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pass }) });
+    const data = await res.json();
+    if (data.csrfToken) {
+      csrfToken = data.csrfToken;
+      document.getElementById('loginWrap').style.display = 'none';
+      document.getElementById('adminWrap').classList.add('open');
+      loadOrders();
+      loadMaintenanceStatus();
+      setInterval(loadOrders, 15000);
+      connectWebSocket();
+    } else {
+      document.getElementById('loginError').style.display = 'block';
+    }
+  } catch(e) { document.getElementById('loginError').textContent = 'Error de conexión'; document.getElementById('loginError').style.display = 'block'; }
+}
+
+let maintenanceOn = false;
+
+async function toggleMaintenance() {
+  maintenanceOn = !maintenanceOn;
+  const data = await apiCall('/api/admin/maintenance', { method: 'POST', body: JSON.stringify({ enabled: maintenanceOn }) });
+  if (data) {
+    document.getElementById('mtBtn').textContent = data.maintenance ? '🔧 Desactivar mantenimiento' : '🔧 Mantenimiento';
+    showNotification(data.maintenance ? '🔧 Modo mantenimiento activado' : '✓ Tienda visible');
+  }
+}
+
+async function loadMaintenanceStatus() {
+  const data = await apiCall('/api/admin/maintenance');
+  if (data) {
+    maintenanceOn = data.maintenance;
+    const btn = document.getElementById('mtBtn');
+    if (btn) {
+      btn.style.display = 'inline-block';
+      btn.textContent = data.maintenance ? '🔧 Desactivar mantenimiento' : '🔧 Mantenimiento';
+    }
+  }
+}
+
+function showLogin() {
+  document.getElementById('loginWrap').style.display = 'flex';
+  document.getElementById('adminWrap').classList.remove('open');
+  csrfToken = null; if (socket) socket.close();
+}
+
+async function adminLogout() {
+  await fetch(API + '/api/auth/logout', { method: 'POST', credentials: 'include' });
+  showLogin();
+}
+
+function connectWebSocket() {
+  const badge = document.getElementById('wsBadge');
+  try {
+    socket = io(API, { path: '/ws', transports: ['websocket', 'polling'], auth: { token: getCookie('access_token') } });
+
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? match[2] : '';
+}
+    socket.on('connect', () => { badge.className = 'ws-badge on'; });
+    socket.on('disconnect', () => { badge.className = 'ws-badge'; });
+    socket.on('order:created', (order) => {
+      showNotification('🔔 Nuevo pedido de ' + order.name);
+      loadOrders();
+    });
+    socket.on('order:updated', (order) => {
+      loadOrders();
+    });
+  } catch(e) { badge.className = 'ws-badge'; }
+}
+
+function showNotification(msg) {
+  const el = document.getElementById('notifToast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(window._notifTimer);
+  window._notifTimer = setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+async function loadOrders() {
+  const data = await apiCall('/api/orders');
+  if (!data) return;
+  allOrders = data;
+  renderOrders(data);
+  updateStats(data);
+  updateCharts(data);
+}
+
+function renderOrders(data) {
+  const tbody = document.getElementById('ordersBody');
+  const empty = document.getElementById('emptyState');
+  const search = (document.getElementById('searchInput').value || '').toLowerCase();
+  const filtered = search ? data.filter(o => o.name.toLowerCase().includes(search) || o.email.toLowerCase().includes(search) || o.id.includes(search)) : data;
+
+  if (filtered.length === 0) {
+    empty.style.display = 'block';
+    tbody.innerHTML = '';
+  } else {
+    empty.style.display = 'none';
+    tbody.innerHTML = filtered.map(o => `
+      <tr class="${isNew(o) ? 'row-new' : ''}">
+        <td style="font-family:monospace;font-size:.78rem;color:#9B9AA8">${esc(o.id.slice(0, 8))}</td>
+        <td>${esc(o.name)}</td>
+        <td style="color:#9B9AA8">${esc(o.email)}</td>
+        <td style="color:#C9A84C">€${o.total.toFixed(2).replace('.',',')}</td>
+        <td><span class="status ${o.status}">${o.status}</span></td>
+        <td style="color:#9B9AA8;font-size:.8rem">${new Date(o.created).toLocaleString('es-ES')}</td>
+        <td class="actions">
+          <select onchange="updateStatus('${o.id}', this.value)">
+            <option value="">Cambiar</option>
+            <option value="paid">Pagado</option>
+            <option value="shipped">Enviado</option>
+            <option value="delivered">Entregado</option>
+            <option value="cancelled">Cancelado</option>
+          </select>
+        </td>
+        <td><a href="/api/orders/${o.id}/pdf" target="_blank" style="color:#C9A84C;text-decoration:none;font-size:.8rem;">📄</a></td>
+      </tr>
+    `).join('');
+  }
+}
+
+function filterOrders() { renderOrders(allOrders); }
+
+function isNew(order) {
+  return Date.now() - new Date(order.created).getTime() < 30000;
+}
+
+function updateStats(data) {
+  document.getElementById('sTotal').textContent = data.length;
+  const revenue = data.reduce((s, o) => s + (o.status !== 'cancelled' ? o.total : 0), 0);
+  document.getElementById('sRevenue').textContent = '€' + revenue.toFixed(2).replace('.',',');
+  document.getElementById('sPending').textContent = data.filter(o => o.status === 'pending').length;
+  document.getElementById('sShipped').textContent = data.filter(o => ['shipped','delivered'].includes(o.status)).length;
+  document.getElementById('sWeek').textContent = data.filter(o => new Date(o.created) > new Date(Date.now()-7*864e5)).length;
+}
+
+function updateCharts(data) {
+  const statuses = ['pending','paid','shipped','delivered','cancelled'];
+  const counts = statuses.map(s => data.filter(o => o.status === s).length);
+  const colors = ['#F39C12','#2ECC71','#3498DB','#2ECC71','#E74C3C'];
+
+  if (!statusChart) {
+    const ctx = document.getElementById('statusChart').getContext('2d');
+    statusChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: { labels: statuses, datasets: [{ data: counts, backgroundColor: colors, borderWidth: 0 }] },
+      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { color: '#9B9AA8', font: { size: 11 } } } } }
+    });
+  } else {
+    statusChart.data.datasets[0].data = counts;
+    statusChart.update();
+  }
+
+  // Revenue trend (last 7 days)
+  const days = [];
+  const revenues = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 864e5);
+    const dayStr = d.toISOString().slice(0,10);
+    const dayData = data.filter(o => o.created?.startsWith(dayStr) && o.status !== 'cancelled');
+    days.push(d.toLocaleDateString('es-ES', { weekday:'short' }));
+    revenues.push(dayData.reduce((s,o) => s+o.total, 0));
+  }
+
+  if (!revenueChart) {
+    const ctx2 = document.getElementById('revenueChart').getContext('2d');
+    revenueChart = new Chart(ctx2, {
+      type: 'bar',
+      data: { labels: days, datasets: [{ label: 'Ingresos', data: revenues, backgroundColor: 'rgba(201,168,76,.6)', borderColor: '#C9A84C', borderWidth: 1 }] },
+      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9B9AA8' } }, y: { ticks: { color: '#9B9AA8' } } } }
+    });
+  } else {
+    revenueChart.data.datasets[0].data = revenues;
+    revenueChart.update();
+  }
+}
+
+async function updateStatus(id, status) {
+  if (!status) return;
+  await apiCall('/api/orders/' + id + '/status', { method: 'PUT', body: JSON.stringify({ status }) });
+  loadOrders();
+}
+
+function exportCSV() {
+  window.open(API + '/api/orders/export?t=' + Date.now(), '_blank');
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') adminLogin(); });
+
+// ── TABS ──
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  if (tab === 'products') loadProducts();
+}
+
+// ── PRODUCTS ──
+let allProducts = [];
+let editingProductId = null;
+
+async function loadProducts() {
+  const data = await apiCall('/api/products?all=1');
+  if (!data) return;
+  allProducts = data;
+  renderProducts(data);
+}
+
+function renderProducts(data) {
+  const tbody = document.getElementById('productsBody');
+  const empty = document.getElementById('emptyProducts');
+  const count = document.getElementById('productCount');
+
+  if (count) count.textContent = data.length + ' productos';
+  if (data.length === 0) {
+    empty.style.display = 'block';
+    tbody.innerHTML = '';
+  } else {
+    empty.style.display = 'none';
+    tbody.innerHTML = data.map(p => `
+      <tr>
+        <td style="font-size:1.4rem;">${p.image || '📦'}</td>
+        <td><strong>${esc(p.name)}</strong><br><span style="font-size:.75rem;color:#9B9AA8">${esc((p.description||'').slice(0,50))}</span></td>
+        <td style="color:#C9A84C">€${p.price.toFixed(2).replace('.',',')}</td>
+        <td><span style="color:${p.stock < 5 ? '#E74C3C' : '#9B9AA8'}">${p.stock}</span></td>
+        <td style="color:#9B9AA8;font-size:.8rem">${esc(p.category)}</td>
+        <td><span class="status" style="background:${p.active ? 'rgba(46,204,113,.12)' : 'rgba(231,76,60,.12)'};color:${p.active ? '#2ECC71' : '#E74C3C'}">${p.active ? 'Sí' : 'No'}</span></td>
+        <td class="actions">
+          <button class="btn-sm" onclick="editProduct('${p.id}')">✏️</button>
+          <button class="btn-sm ${p.active ? 'danger' : ''}" onclick="toggleProduct('${p.id}', ${p.active ? 0 : 1})">${p.active ? 'Desactivar' : 'Activar'}</button>
+          <button class="btn-sm danger" onclick="deleteProduct('${p.id}')">🗑️</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+}
+
+function openProductModal(product) {
+  editingProductId = product ? product.id : null;
+  document.getElementById('modalTitle').textContent = product ? 'Editar producto' : 'Nuevo producto';
+  document.getElementById('pfName').value = product ? product.name : '';
+  document.getElementById('pfDesc').value = product ? (product.description || '') : '';
+  document.getElementById('pfPrice').value = product ? product.price : '';
+  document.getElementById('pfStock').value = product ? product.stock : 0;
+  document.getElementById('pfCat').value = product ? (product.category || 'general') : 'general';
+  document.getElementById('pfImage').value = product ? (product.image || '📦') : '⚡';
+  document.getElementById('productModal').classList.add('open');
+}
+
+function closeProductModal() {
+  document.getElementById('productModal').classList.remove('open');
+  editingProductId = null;
+}
+
+async function saveProduct() {
+  const name = document.getElementById('pfName').value.trim();
+  const price = parseFloat(document.getElementById('pfPrice').value);
+  if (!name || isNaN(price)) { showNotification('⚠️ Nombre y precio son obligatorios'); return; }
+
+  const data = {
+    name,
+    description: document.getElementById('pfDesc').value.trim(),
+    price,
+    stock: parseInt(document.getElementById('pfStock').value) || 0,
+    category: document.getElementById('pfCat').value,
+    image: document.getElementById('pfImage').value || '📦',
+  };
+
+  let result;
+  if (editingProductId) {
+    result = await apiCall('/api/products/' + editingProductId, { method: 'PUT', body: JSON.stringify(data) });
+  } else {
+    result = await apiCall('/api/products', { method: 'POST', body: JSON.stringify(data) });
+  }
+  if (result) {
+    closeProductModal();
+    loadProducts();
+    showNotification(editingProductId ? '✓ Producto actualizado' : '✓ Producto creado');
+  }
+}
+
+async function toggleProduct(id, active) {
+  await apiCall('/api/products/' + id, { method: 'PUT', body: JSON.stringify({ active }) });
+  loadProducts();
+}
+
+async function deleteProduct(id) {
+  if (!confirm('¿Eliminar este producto?')) return;
+  await apiCall('/api/products/' + id, { method: 'DELETE' });
+  loadProducts();
+  showNotification('🗑️ Producto eliminado');
+}
+
+function editProduct(id) {
+  const p = allProducts.find(x => x.id === id);
+  if (p) openProductModal(p);
+}
+
+// ── COUPONS ──
+let allCoupons = [];
+let editingCouponId = null;
+
+async function loadCoupons() {
+  const data = await apiCall('/api/coupons');
+  if (!data) return;
+  allCoupons = data;
+  renderCoupons(data);
+}
+
+function renderCoupons(data) {
+  const tbody = document.getElementById('couponsBody');
+  const empty = document.getElementById('emptyCoupons');
+  const count = document.getElementById('couponCount');
+  if (count) count.textContent = data.length + ' cupones';
+  if (data.length === 0) {
+    empty.style.display = 'block'; tbody.innerHTML = '';
+  } else {
+    empty.style.display = 'none';
+    tbody.innerHTML = data.map(c => {
+      const expired = c.expires_at && new Date(c.expires_at) < new Date();
+      return `<tr style="${c.active && !expired ? '' : 'opacity:.5'}">
+        <td><strong style="color:#C9A84C;letter-spacing:.08em;font-family:monospace;">${esc(c.code)}</strong></td>
+        <td style="color:#C9A84C">${c.type === 'percentage' ? c.discount + '%' : '€' + c.discount.toFixed(2).replace('.',',')}</td>
+        <td style="color:#9B9AA8;font-size:.8rem">${c.type === 'percentage' ? '%' : '€'}</td>
+        <td style="color:#9B9AA8">${c.min_amount > 0 ? '€' + c.min_amount.toFixed(2).replace('.',',') : '—'}</td>
+        <td style="color:#9B9AA8">${c.max_uses > 0 ? c.use_count + '/' + c.max_uses : c.use_count + ' usos'}</td>
+        <td style="color:${expired ? '#E74C3C' : '#9B9AA8'};font-size:.8rem">${c.expires_at ? new Date(c.expires_at).toLocaleDateString('es-ES') : '—'}</td>
+        <td><span class="status" style="background:${c.active ? 'rgba(46,204,113,.12)' : 'rgba(231,76,60,.12)'};color:${c.active ? '#2ECC71' : '#E74C3C'}">${c.active ? 'Sí' : 'No'}</span></td>
+        <td class="actions">
+          <button class="btn-sm" onclick="editCoupon('${c.id}')">✏️</button>
+          <button class="btn-sm ${c.active ? 'danger' : ''}" onclick="toggleCoupon('${c.id}', ${c.active ? 0 : 1})">${c.active ? 'Desactivar' : 'Activar'}</button>
+          <button class="btn-sm danger" onclick="deleteCoupon('${c.id}')">🗑️</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+function openCouponModal(coupon) {
+  editingCouponId = coupon ? coupon.id : null;
+  document.getElementById('couponModalTitle').textContent = coupon ? 'Editar cupón' : 'Nuevo cupón';
+  document.getElementById('cfCode').value = coupon ? coupon.code : '';
+  document.getElementById('cfDiscount').value = coupon ? coupon.discount : '';
+  document.getElementById('cfType').value = coupon ? coupon.type : 'percentage';
+  document.getElementById('cfMin').value = coupon ? coupon.min_amount : 0;
+  document.getElementById('cfUses').value = coupon ? coupon.max_uses : 0;
+  document.getElementById('cfExpires').value = coupon ? (coupon.expires_at ? coupon.expires_at.slice(0,10) : '') : '';
+  document.getElementById('couponModal').classList.add('open');
+}
+
+function closeCouponModal() {
+  document.getElementById('couponModal').classList.remove('open');
+  editingCouponId = null;
+}
+
+async function saveCoupon() {
+  const code = document.getElementById('cfCode').value.trim().toUpperCase();
+  const discount = parseFloat(document.getElementById('cfDiscount').value);
+  if (!code || !discount) { showNotification('⚠️ Código y descuento requeridos'); return; }
+  const data = { code, discount, type: document.getElementById('cfType').value, min_amount: parseFloat(document.getElementById('cfMin').value) || 0, max_uses: parseInt(document.getElementById('cfUses').value) || 0, expires_at: document.getElementById('cfExpires').value || null };
+  let result;
+  if (editingCouponId) result = await apiCall('/api/coupons/' + editingCouponId, { method: 'PUT', body: JSON.stringify(data) });
+  else result = await apiCall('/api/coupons', { method: 'POST', body: JSON.stringify(data) });
+  if (result) { closeCouponModal(); loadCoupons(); showNotification(editingCouponId ? '✓ Cupón actualizado' : '✓ Cupón creado'); }
+}
+
+async function toggleCoupon(id, active) {
+  await apiCall('/api/coupons/' + id, { method: 'PUT', body: JSON.stringify({ active }) });
+  loadCoupons();
+}
+
+async function deleteCoupon(id) {
+  if (!confirm('¿Eliminar este cupón?')) return;
+  await apiCall('/api/coupons/' + id, { method: 'DELETE' });
+  loadCoupons(); showNotification('🗑️ Cupón eliminado');
+}
+
+function editCoupon(id) {
+  const c = allCoupons.find(x => x.id === id);
+  if (c) openCouponModal(c);
+}
+
+// ── BLOG POSTS ──
+let allPosts = [];
+let editingPostId = null;
+
+async function loadPosts() {
+  const data = await apiCall('/api/posts?all=1');
+  if (!data) return;
+  allPosts = data;
+  renderPosts(data);
+}
+
+function renderPosts(data) {
+  const tbody = document.getElementById('postsBody');
+  const empty = document.getElementById('emptyPosts');
+  const count = document.getElementById('postCount');
+  if (count) count.textContent = data.length + ' artículos';
+  if (data.length === 0) {
+    empty.style.display = 'block'; tbody.innerHTML = '';
+  } else {
+    empty.style.display = 'none';
+    tbody.innerHTML = data.map(p => `<tr style="${p.published ? '' : 'opacity:.5'}">
+      <td style="font-size:1.3rem;">${p.image || '📰'}</td>
+      <td><strong>${esc(p.title)}</strong><br><span style="font-size:.75rem;color:#9B9AA8">${esc((p.excerpt||'').slice(0,60))}</span></td>
+      <td style="color:#9B9AA8;font-family:monospace;font-size:.78rem;">/${esc(p.slug)}</td>
+      <td><span class="status" style="background:${p.published ? 'rgba(46,204,113,.12)' : 'rgba(231,76,60,.12)'};color:${p.published ? '#2ECC71' : '#E74C3C'}">${p.published ? 'Sí' : 'No'}</span></td>
+      <td style="color:#9B9AA8;font-size:.8rem">${new Date(p.created).toLocaleDateString('es-ES')}</td>
+      <td class="actions">
+        <a href="/blog/${esc(p.slug)}" target="_blank" class="btn-sm" style="text-decoration:none;display:inline-block;">🔗</a>
+        <button class="btn-sm" onclick="editPost('${p.id}')">✏️</button>
+        <button class="btn-sm ${p.published ? 'danger' : ''}" onclick="togglePost('${p.id}', ${p.published ? 0 : 1})">${p.published ? 'Ocultar' : 'Publicar'}</button>
+        <button class="btn-sm danger" onclick="deletePost('${p.id}')">🗑️</button>
+      </td>
+    </tr>`).join('');
+  }
+}
+
+function openPostModal(post) {
+  editingPostId = post ? post.id : null;
+  document.getElementById('postModalTitle').textContent = post ? 'Editar artículo' : 'Nuevo artículo';
+  document.getElementById('pfTitle').value = post ? post.title : '';
+  document.getElementById('pfSlug').value = post ? post.slug : '';
+  document.getElementById('pfExcerpt').value = post ? (post.excerpt || '') : '';
+  document.getElementById('pfContent').value = post ? (post.content || '') : '';
+  document.getElementById('pfPostImage').value = post ? (post.image || '📰') : '📰';
+  document.getElementById('pfAuthor').value = post ? (post.author || 'LumiCharge') : 'LumiCharge';
+  document.getElementById('postModal').classList.add('open');
+}
+
+function closePostModal() {
+  document.getElementById('postModal').classList.remove('open');
+  editingPostId = null;
+}
+
+async function savePost() {
+  const title = document.getElementById('pfTitle').value.trim();
+  const content = document.getElementById('pfContent').value.trim();
+  if (!title || !content) { showNotification('⚠️ Título y contenido requeridos'); return; }
+  const data = { title, content, slug: document.getElementById('pfSlug').value.trim() || undefined, excerpt: document.getElementById('pfExcerpt').value.trim(), image: document.getElementById('pfPostImage').value || '📰', author: document.getElementById('pfAuthor').value.trim() || 'LumiCharge', published: 1 };
+  let result;
+  if (editingPostId) result = await apiCall('/api/posts/' + editingPostId, { method: 'PUT', body: JSON.stringify(data) });
+  else result = await apiCall('/api/posts', { method: 'POST', body: JSON.stringify(data) });
+  if (result) { closePostModal(); loadPosts(); showNotification(editingPostId ? '✓ Artículo actualizado' : '✓ Artículo creado'); }
+}
+
+async function togglePost(id, published) {
+  await apiCall('/api/posts/' + id, { method: 'PUT', body: JSON.stringify({ published }) });
+  loadPosts();
+}
+
+async function deletePost(id) {
+  if (!confirm('¿Eliminar este artículo?')) return;
+  await apiCall('/api/posts/' + id, { method: 'DELETE' });
+  loadPosts(); showNotification('🗑️ Artículo eliminado');
+}
+
+function editPost(id) {
+  const p = allPosts.find(x => x.id === id);
+  if (p) openPostModal(p);
+}
+
+// ── Update switchTab to load coupons + posts ──
+switchTab = function(tab, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  if (tab === 'products') loadProducts();
+  if (tab === 'coupons') loadCoupons();
+  if (tab === 'blog') loadPosts();
+  if (tab === 'newsletter') loadSubs();
+  if (tab === 'reviews') loadReviews();
+};
+
+// ── REVIEWS ──
+async function loadReviews() {
+  const data = await apiCall('/api/reviews');
+  if (!data) return;
+  document.getElementById('revCount').textContent = data.length + ' reseñas';
+  const tbody = document.getElementById('revsBody');
+  const empty = document.getElementById('emptyRevs');
+  if (data.length === 0) { empty.style.display = 'block'; tbody.innerHTML = ''; return; }
+  empty.style.display = 'none';
+  const products = await apiCall('/api/products?all=1');
+  const prodMap = {};
+  if (products) products.forEach(p => prodMap[p.id] = p.name);
+  tbody.innerHTML = data.map(r => `<tr>
+    <td style="color:#9B9AA8;font-size:.8rem">${esc(prodMap[r.product_id] || r.product_id.slice(0,8))}</td>
+    <td>${esc(r.name)}</td>
+    <td style="color:var(--gold)">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</td>
+    <td style="color:#9B9AA8;font-size:.82rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.comment || '—')}</td>
+    <td style="color:#9B9AA8;font-size:.8rem">${new Date(r.created).toLocaleDateString('es-ES')}</td>
+    <td class="actions"><button class="btn-sm danger" onclick="deleteReview('${r.id}')">🗑️</button></td>
+  </tr>`).join('');
+}
+
+async function deleteReview(id) {
+  if (!confirm('¿Eliminar esta reseña?')) return;
+  await apiCall('/api/reviews/' + id, { method: 'DELETE' });
+  loadReviews();
+}
+
+// ── NEWSLETTER ──
+async function loadSubs() {
+  const data = await apiCall('/api/newsletter/subscribers');
+  if (!data) return;
+  const tbody = document.getElementById('subsBody');
+  const empty = document.getElementById('emptySubs');
+  const count = document.getElementById('subCount');
+  if (count) count.textContent = data.length + ' suscriptores';
+  if (data.length === 0) {
+    empty.style.display = 'block'; tbody.innerHTML = '';
+  } else {
+    empty.style.display = 'none';
+    tbody.innerHTML = data.map(s => `<tr>
+      <td>${esc(s.email)}</td>
+      <td style="color:#9B9AA8">${esc(s.name || '—')}</td>
+      <td style="color:#9B9AA8;font-size:.8rem">${esc(s.source)}</td>
+      <td style="color:#9B9AA8;font-size:.8rem">${new Date(s.created).toLocaleDateString('es-ES')}</td>
+      <td class="actions"><button class="btn-sm danger" onclick="deleteSub('${s.id}')">🗑️</button></td>
+    </tr>`).join('');
+  }
+}
+
+async function deleteSub(id) {
+  if (!confirm('¿Eliminar este suscriptor?')) return;
+  await apiCall('/api/newsletter/subscribers/' + id, { method: 'DELETE' });
+  loadSubs();
+}
+
+function exportSubs() {
+  window.open(API + '/api/newsletter/export?t=' + Date.now(), '_blank');
+}
+</script>
+</body>
+</html>

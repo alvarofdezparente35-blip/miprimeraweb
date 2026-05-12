@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carrito — LumiCharge Pro</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&display=swap"></noscript>
+  <script type="module" crossorigin src="/assets/cart--s1lA8hE.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-iJ-6Fn-a.js">
+  <link rel="modulepreload" crossorigin href="/assets/ui-B7iG3Sl9.js">
+  <link rel="modulepreload" crossorigin href="/assets/cart-BDiyRCdN.js">
+  <link rel="stylesheet" crossorigin href="/assets/style-qalD0Ayd.css">
+</head>
+<body>
+
+<!-- NAV -->
+<nav style="display:flex;align-items:center;justify-content:space-between;padding:.85rem 5%;background:rgba(10,10,15,0.95);backdrop-filter:blur(20px);border-bottom:0.5px solid rgba(201,168,76,0.2);">
+  <a href="/" class="nav-logo" style="font-family:'Arimo',sans-serif;font-size:1.4rem;font-weight:700;letter-spacing:.15em;color:#C9A84C;text-decoration:none;">LUMICHARGE</a>
+  <div style="display:flex;align-items:center;gap:1rem;">
+    <a href="/" style="color:#9B9AA8;text-decoration:none;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;">← Seguir comprando</a>
+    <div class="ssl-badge" style="display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:#2ECC71;background:rgba(46,204,113,0.08);padding:.28rem .65rem;border-radius:20px;border:0.5px solid rgba(46,204,113,0.25);">
+      <svg width="10" height="12" viewBox="0 0 10 12" fill="#2ECC71"><path d="M5 0C3.34 0 2 1.34 2 3v1H1C.45 4 0 4.45 0 5v6c0 .55.45 1 1 1h8c.55 0 1-.45 1-1V5c0-.55-.45-1-1-1H8V3C8 1.34 6.66 0 5 0zm0 1.5c.83 0 1.5.67 1.5 1.5v1h-3V3c0-.83.67-1.5 1.5-1.5zM5 7c.55 0 1 .45 1 1s-.45 1-1 1-.45-1-.45-1 .45-1 1-1z" opacity=".7"/></svg>
+      SSL Seguro
+    </div>
+  </div>
+</nav>
+
+<!-- CART PAGE -->
+<div style="max-width:900px;margin:0 auto;padding:4rem 5%;">
+  <div style="margin-bottom:2rem;">
+    <h1 style="font-size:clamp(1.8rem,3vw,2.5rem);font-weight:700;color:#F0EDE8;font-family:'Arimo',sans-serif;">🛒 Tu carrito</h1>
+    <p style="color:#9B9AA8;font-size:.9rem;margin-top:.5rem;" id="cartCountLabel"></p>
+  </div>
+
+  <!-- Cart items list -->
+  <div id="cartItems"></div>
+
+  <!-- Empty state -->
+  <div id="cartEmpty" style="display:none;text-align:center;padding:4rem 2rem;">
+    <div style="font-size:4rem;margin-bottom:1rem;">🛒</div>
+    <h2 style="font-size:1.3rem;color:#F0EDE8;margin-bottom:.5rem;">Tu carrito está vacío</h2>
+    <p style="color:#9B9AA8;font-size:.9rem;margin-bottom:2rem;">Añade productos desde nuestra tienda para empezar.</p>
+    <a href="/" class="btn-primary" style="background:#C9A84C;color:#0A0A0F;border:none;padding:1rem 2.5rem;border-radius:3px;font-size:.9rem;font-weight:500;letter-spacing:.08em;cursor:pointer;text-decoration:none;display:inline-block;">Ir a la tienda</a>
+  </div>
+
+  <!-- Summary -->
+  <div id="cartSummary" style="background:#12121A;border:0.5px solid rgba(201,168,76,.15);border-radius:12px;padding:2rem;max-width:400px;margin-left:auto;margin-top:2rem;">
+    <div style="margin-bottom:1rem;">
+      <div style="display:flex;gap:.5rem;">
+        <input type="text" id="couponInput" placeholder="CÓDIGO DESCUENTO" style="flex:1;background:#1A1A26;border:0.5px solid rgba(255,255,255,.15);border-radius:6px;padding:.6rem .8rem;color:#F0EDE8;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;font-family:'Arimo',sans-serif;">
+        <button onclick="applyCoupon()" style="background:rgba(201,168,76,.1);color:#C9A84C;border:0.5px solid rgba(201,168,76,.25);border-radius:6px;padding:.6rem .8rem;cursor:pointer;font-size:.8rem;font-family:'Arimo',sans-serif;white-space:nowrap;">Aplicar</button>
+      </div>
+      <div id="couponMsg" style="font-size:.78rem;margin-top:.4rem;display:none;"></div>
+    </div>
+    <h3 style="font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:#9B9AA8;margin-bottom:1rem;font-family:'Arimo',sans-serif;font-weight:400;">Resumen</h3>
+    <div style="display:flex;justify-content:space-between;margin-bottom:.8rem;">
+      <span style="color:#9B9AA8;font-size:.88rem;">Subtotal</span>
+      <span style="color:#F0EDE8;font-size:.88rem;" id="cartSubtotal">€0,00</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:.8rem;">
+      <span style="color:#9B9AA8;font-size:.88rem;">Envío</span>
+      <span style="color:#2ECC71;font-size:.88rem;">Gratis</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding-top:.8rem;border-top:0.5px solid rgba(255,255,255,.06);margin-bottom:1.2rem;">
+      <span style="font-weight:600;color:#F0EDE8;">Total</span>
+      <span style="font-size:1.4rem;font-weight:700;color:#C9A84C;font-family:'Arimo',sans-serif;" id="cartTotal">€0,00</span>
+    </div>
+    <a href="/#comprar" class="btn-primary" style="width:100%;text-align:center;background:#C9A84C;color:#0A0A0F;border:none;padding:1rem;border-radius:6px;font-size:.9rem;font-weight:500;cursor:pointer;text-decoration:none;display:block;letter-spacing:.06em;">Proceder al pago seguro →</a>
+    <p style="text-align:center;font-size:.72rem;color:#555;margin-top:.8rem;">🔐 Pago 100% seguro con Stripe</p>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer style="background:#12121A;border-top:0.5px solid rgba(201,168,76,.15);padding:2rem 5%;margin-top:3rem;">
+  <div style="max-width:900px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+    <span style="font-family:'Arimo',sans-serif;font-size:1.2rem;color:#C9A84C;letter-spacing:.15em;font-weight:700;">LUMICHARGE</span>
+    <span style="font-size:.8rem;color:#555;">© 2025 LumiCharge Technologies S.L.</span>
+  </div>
+</footer>
+
+</body>
+</html>

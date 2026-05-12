@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seguimiento de pedido — LumiCharge</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&display=swap"></noscript>
+<link rel="stylesheet" href="/src/style.css">
+<style>
+  body { padding-top: 60px; min-height: 100vh; display: flex; flex-direction: column; }
+  .track-wrap { max-width: 560px; margin: 0 auto; padding: 3rem 5%; flex:1; }
+  .track-wrap h1 { font-size: 1.8rem; margin-bottom: .5rem; }
+  .track-wrap p { color: var(--text-muted); margin-bottom: 2rem; }
+  .track-input-group { display: flex; gap: .5rem; }
+  .track-input-group input { flex:1; background: var(--dark-3); border: 0.5px solid rgba(255,255,255,.15); border-radius: 6px; padding: .85rem 1rem; color: var(--text); font-size: .9rem; font-family: 'Arimo', sans-serif; }
+  .track-input-group input:focus { outline: none; border-color: var(--gold); }
+  .track-input-group button { background: var(--gold); color: var(--dark); border: none; padding: .85rem 1.5rem; border-radius: 6px; font-size: .9rem; font-weight: 600; cursor: pointer; white-space: nowrap; font-family: 'Arimo', sans-serif; }
+  .track-input-group button:hover { background: var(--gold-light); }
+  #trackResult { margin-top: 2rem; display: none; }
+  .track-card { background: var(--dark-3); border: 0.5px solid var(--border); border-radius: 12px; padding: 2rem; }
+  .track-card .id { font-family: monospace; font-size: .82rem; color: var(--text-muted); margin-bottom: 1rem; }
+  .track-card .name { font-size: 1.1rem; font-weight: 600; margin-bottom: .3rem; }
+  .track-card .total { font-size: 1.3rem; color: var(--gold); font-weight: 700; margin-bottom: 1.5rem; }
+  .track-steps { display: flex; justify-content: space-between; position: relative; margin: 2rem 0; }
+  .track-steps::before { content: ''; position: absolute; top: 14px; left: 10%; right: 10%; height: 2px; background: rgba(255,255,255,.08); z-index: 0; }
+  .track-step { text-align: center; position: relative; z-index: 1; }
+  .track-step .dot { width: 28px; height: 28px; border-radius: 50%; background: var(--dark-4); border: 2px solid rgba(255,255,255,.1); display: flex; align-items: center; justify-content: center; margin: 0 auto .4rem; font-size: .75rem; color: var(--text-muted); font-weight: 700; transition: all .3s; }
+  .track-step.done .dot { background: var(--gold); border-color: var(--gold); color: var(--dark); }
+  .track-step .label { font-size: .7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
+  .track-step.done .label { color: var(--text); }
+  .track-error { background: rgba(231,76,60,.08); border: 0.5px solid rgba(231,76,60,.2); border-radius: 8px; padding: 1rem; color: #E74C3C; font-size: .88rem; display: none; margin-top: 1rem; }
+  .track-footer { text-align: center; padding: 2rem; color: var(--text-muted); font-size: .82rem; }
+  .nav-bar { display:flex; align-items:center; justify-content:space-between; padding:.85rem 5%; background:rgba(10,10,15,.95); backdrop-filter:blur(20px); border-bottom:0.5px solid var(--border); position:fixed; top:0; left:0; right:0; z-index:999; }
+  .nav-bar a { color:var(--gold); text-decoration:none; font-family:'Arimo',sans-serif; font-size:1.2rem; font-weight:700; letter-spacing:.15em; }
+  .nav-bar .back { color:var(--text-muted); font-size:.82rem; letter-spacing:.08em; text-transform:uppercase; }
+  .nav-bar .back:hover { color:var(--gold); }
+  @media (max-width:480px) { .track-steps { gap:.3rem; } .track-step .label { font-size:.6rem; } }
+</style>
+</head>
+<body>
+<nav class="nav-bar">
+  <a href="/">LUMICHARGE</a>
+  <a href="/" class="back">← Tienda</a>
+</nav>
+<div class="track-wrap">
+  <h1>📦 Seguimiento de pedido</h1>
+  <p>Introduce tu ID de pedido para ver el estado actual. Lo encontrarás en el email de confirmación.</p>
+  <div class="track-input-group">
+    <input type="text" id="trackInput" placeholder="Ej: a1b2c3d4-e5f6..." onkeydown="if(event.key==='Enter') trackOrder()">
+    <button onclick="trackOrder()">Buscar</button>
+  </div>
+  <div class="track-error" id="trackError"></div>
+  <div id="trackResult"></div>
+</div>
+<div class="track-footer">¿No encuentras tu ID? Revisa el email de confirmación o <a href="/#comprar" style="color:var(--gold);">contacta con soporte</a>.</div>
+<script>
+const STATUS_ORDER = ['pending', 'paid', 'shipped', 'delivered'];
+const STATUS_LABELS = { pending:'Pendiente', paid:'Pagado', shipped:'Enviado', delivered:'Entregado' };
+
+async function trackOrder() {
+  const input = document.getElementById('trackInput');
+  const result = document.getElementById('trackResult');
+  const error = document.getElementById('trackError');
+  const id = input.value.trim();
+  if (!id) { error.textContent = 'Introduce un ID de pedido'; error.style.display = 'block'; result.style.display = 'none'; return; }
+
+  error.style.display = 'none';
+  result.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:1rem;">Buscando...</div>';
+  result.style.display = 'block';
+
+  try {
+    const res = await fetch('/api/tracking', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id}) });
+    const data = await res.json();
+    if (!data.found) {
+      result.innerHTML = `<div class="track-card" style="text-align:center;"><div style="font-size:3rem;margin-bottom:1rem;">🔍</div><p style="color:var(--text-muted);">No encontramos ningún pedido con ese ID.<br>Verifica que lo escribiste correctamente.</p></div>`;
+      return;
+    }
+
+    const currentIdx = STATUS_ORDER.indexOf(data.status);
+    const date = new Date(data.created).toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' });
+
+    result.innerHTML = `
+      <div class="track-card">
+        <div class="id">#${esc(data.id.slice(0, 8))}</div>
+        <div class="name">${esc(data.name)}</div>
+        <div class="total">€${data.total.toFixed(2).replace('.',',')}</div>
+        <div class="track-steps">
+          ${STATUS_ORDER.map((s, i) => `
+            <div class="track-step ${i <= currentIdx ? 'done' : ''}">
+              <div class="dot">${i <= currentIdx ? '✓' : i+1}</div>
+              <div class="label">${STATUS_LABELS[s]}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div style="text-align:center;font-size:.82rem;color:var(--text-muted);">Pedido realizado el ${date}</div>
+      </div>
+    `;
+  } catch {
+    error.textContent = 'Error al buscar el pedido. Inténtalo de nuevo.';
+    error.style.display = 'block';
+  }
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+</body>
+</html>

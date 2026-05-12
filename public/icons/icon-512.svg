@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#0A0A0F"/>
+  <circle cx="256" cy="280" r="110" fill="none" stroke="#C9A84C" stroke-width="6"/>
+  <circle cx="256" cy="280" r="76" fill="none" stroke="#C9A84C" stroke-width="5" stroke-dasharray="16 12" opacity=".6"/>
+  <circle cx="256" cy="280" r="30" fill="#C9A84C" opacity=".9"/>
+  <rect x="210" y="124" width="92" height="130" rx="14" fill="#1A1A26" stroke="#C9A84C" stroke-width="3"/>
+  <rect x="222" y="144" width="68" height="90" rx="8" fill="#1A2A3A"/>
+  <circle cx="256" cy="280" r="8" fill="#C9A84C"/>
+  <path d="M132 368 l124-52 124 52" fill="none" stroke="#C9A84C" stroke-width="5" opacity=".4"/>
+  <text x="256" y="452" text-anchor="middle" font-family="Arimo,sans-serif" font-size="32" font-weight="700" fill="#C9A84C" letter-spacing="4">LUMI</text>
+</svg>

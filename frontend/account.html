@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi cuenta — LumiCharge</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&display=swap"></noscript>
+<link rel="stylesheet" href="/src/style.css">
+<style>
+  body { padding-top:60px; min-height:100vh; }
+  .nav-bar { display:flex; align-items:center; justify-content:space-between; padding:.85rem 5%; background:rgba(10,10,15,.95); backdrop-filter:blur(20px); border-bottom:0.5px solid var(--border); position:fixed; top:0; left:0; right:0; z-index:999; }
+  .nav-bar span { color:var(--gold); font-family:'Arimo',sans-serif; font-size:1.2rem; font-weight:700; letter-spacing:.15em; }
+  .nav-bar .logout { background:transparent; color:#E74C3C; border:0.5px solid rgba(231,76,60,.3); padding:.4rem .8rem; border-radius:4px; cursor:pointer; font-size:.8rem; }
+  .nav-bar .logout:hover { background:rgba(231,76,60,.1); }
+  .account-wrap { max-width:900px; margin:0 auto; padding:2rem 5% 4rem; }
+  .account-wrap h1 { font-size:1.6rem; margin-bottom:2rem; }
+  .profile-card { background:var(--dark-3); border:0.5px solid var(--border); border-radius:12px; padding:1.5rem; margin-bottom:2rem; }
+  .profile-card h2 { font-size:1rem; margin-bottom:1rem; color:var(--gold); }
+  .profile-card .row { display:flex; gap:1rem; margin-bottom:.8rem; flex-wrap:wrap; align-items:center; }
+  .profile-card label { font-size:.78rem; color:var(--text-muted); min-width:60px; }
+  .profile-card input { flex:1; background:var(--dark-4); border:0.5px solid rgba(255,255,255,.15); border-radius:6px; padding:.6rem .8rem; color:var(--text); font-size:.85rem; font-family:'Arimo',sans-serif; min-width:150px; }
+  .profile-card input:focus { outline:none; border-color:var(--gold); }
+  .profile-card button { background:var(--gold); color:var(--dark); border:none; padding:.6rem 1.2rem; border-radius:6px; font-size:.85rem; font-weight:600; cursor:pointer; }
+  .profile-card button:hover { background:var(--gold-light); }
+  .order-card { background:var(--dark-3); border:0.5px solid var(--border); border-radius:10px; padding:1rem 1.2rem; margin-bottom:.8rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; }
+  .order-card .oid { font-family:monospace; font-size:.78rem; color:var(--text-muted); }
+  .order-card .ototal { color:var(--gold); font-weight:600; }
+  .order-card .ostatus { font-size:.78rem; }
+  .order-card .odate { font-size:.78rem; color:var(--text-muted); }
+  .empty { text-align:center; padding:3rem; color:var(--text-muted); }
+  .login-msg { text-align:center; padding:4rem; color:var(--text-muted); }
+  .login-msg a { color:var(--gold); }
+  .status-badge { display:inline-block; padding:.15rem .5rem; border-radius:8px; font-size:.72rem; font-weight:600; }
+  .status-badge.pending { background:rgba(243,156,18,.12); color:#F39C12; }
+  .status-badge.paid { background:rgba(46,204,113,.12); color:#2ECC71; }
+  .status-badge.shipped { background:rgba(52,152,219,.12); color:#3498DB; }
+  .status-badge.delivered { background:rgba(46,204,113,.12); color:#2ECC71; }
+  .status-badge.cancelled { background:rgba(231,76,60,.12); color:#E74C3C; }
+</style>
+</head>
+<body>
+<nav class="nav-bar">
+  <a href="/" style="color:var(--gold);text-decoration:none;font-family:'Arimo',sans-serif;font-size:1.2rem;font-weight:700;letter-spacing:.15em;">LUMICHARGE</a>
+  <button class="logout" onclick="logout()">Cerrar sesión</button>
+</nav>
+<div class="account-wrap" id="app">
+  <div id="content"></div>
+</div>
+<script>
+const API = window.location.origin;
+const TOKEN = localStorage.getItem('lumicharge_token');
+const content = document.getElementById('content');
+
+if (!TOKEN) {
+  content.innerHTML = '<div class="login-msg"><div style="font-size:3rem;margin-bottom:1rem;">🔐</div><h2>Inicia sesión para ver tu cuenta</h2><p style="margin-top:.5rem;"><a href="/login">Iniciar sesión</a> · <a href="/register">Crear cuenta</a></p></div>';
+} else {
+  loadAccount();
+}
+
+async function loadAccount() {
+  try {
+    const [me, orders] = await Promise.all([
+      fetch(API + '/api/customer/me', { headers: { 'Authorization': 'Bearer ' + TOKEN } }).then(r => r.json()),
+      fetch(API + '/api/customer/orders', { headers: { 'Authorization': 'Bearer ' + TOKEN } }).then(r => r.json()),
+    ]);
+
+    content.innerHTML = `
+      <h1>👋 Hola, ${esc(me.name || 'Cliente')}</h1>
+
+      <div class="profile-card">
+        <h2>📋 Mis datos</h2>
+        <div class="row"><label>Nombre</label><input type="text" id="pfName" value="${esc(me.name)}"></div>
+        <div class="row"><label>Email</label><input type="text" value="${esc(me.email)}" disabled style="opacity:.5"></div>
+        <div class="row"><label>Dirección</label><input type="text" id="pfAddr" value="${esc(me.default_addr || '')}" placeholder="Calle, número..."></div>
+        <div class="row"><label>Ciudad</label><input type="text" id="pfCity" value="${esc(me.default_city || '')}" placeholder="Ciudad" style="flex:.5;min-width:100px;">
+        <input type="text" id="pfZip" value="${esc(me.default_zip || '')}" placeholder="CP" style="flex:.3;min-width:80px;"></div>
+        <button onclick="saveProfile()">Guardar cambios</button>
+        <div id="profileMsg" style="font-size:.82rem;margin-top:.5rem;"></div>
+      </div>
+
+      <h2 style="font-size:1rem;margin-bottom:1rem;">📦 Mis pedidos (${orders.length})</h2>
+      ${orders.length === 0
+        ? '<div class="empty">No tienes pedidos aún. <a href="/#comprar" style="color:var(--gold);">¡Compra ahora!</a></div>'
+        : orders.map(o => `
+          <div class="order-card">
+            <span class="oid">#${esc(o.id.slice(0, 8))}</span>
+            <span class="ototal">€${o.total.toFixed(2).replace('.',',')}</span>
+            <span class="ostatus"><span class="status-badge ${o.status}">${o.status}</span></span>
+            <span class="odate">${new Date(o.created).toLocaleDateString('es-ES')}</span>
+          </div>
+        `).join('')
+      }
+    `;
+  } catch {
+    content.innerHTML = '<div class="login-msg"><h2>⚠️ Sesión expirada</h2><p style="margin-top:.5rem;"><a href="/login">Iniciar sesión de nuevo</a></p></div>';
+    localStorage.removeItem('lumicharge_token');
+  }
+}
+
+async function saveProfile() {
+  const data = { name: document.getElementById('pfName').value, default_addr: document.getElementById('pfAddr').value, default_city: document.getElementById('pfCity').value, default_zip: document.getElementById('pfZip').value };
+  const res = await fetch(API + '/api/customer/profile', { method:'PUT', headers:{'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json'}, body:JSON.stringify(data) });
+  const msg = document.getElementById('profileMsg');
+  if (res.ok) { msg.style.color = '#2ECC71'; msg.textContent = '✓ Datos guardados'; } else { msg.style.color = '#E74C3C'; msg.textContent = 'Error al guardar'; }
+}
+
+function logout() { localStorage.removeItem('lumicharge_token'); window.location.href = '/'; }
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+</body>
+</html>
