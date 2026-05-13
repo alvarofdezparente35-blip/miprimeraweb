@@ -129,7 +129,7 @@ app.use('/api/auth/', authLimiter);
 app.use('/api/checkout', checkoutLimiter);
 
 // ── CSRF ─────────────────────────────────────────────────────────────
-const csrfExempt = ['/api/auth/login', '/api/csrf-token', '/api/webhook/stripe', '/api/health', '/api/coupons/validate', '/api/coupons/apply'];
+const csrfExempt = ['/api/auth/login', '/api/csrf-token', '/api/webhook/stripe', '/api/health', '/api/coupons/validate', '/api/coupons/apply', '/api/customer/register', '/api/customer/login', '/api/newsletter/subscribe', '/api/tracking'];
 app.use('/api/', (req, res, next) => {
   if (csrfExempt.some(p => req.originalUrl.startsWith(p))) return next();
   if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
