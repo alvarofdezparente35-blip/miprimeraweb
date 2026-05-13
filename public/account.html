@@ -7,15 +7,17 @@
 <meta name="robots" content="noindex, nofollow">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&display=swap"></noscript>
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&display=swap"></noscript>
 <style>
   body { padding-top:60px; min-height:100vh; }
   .nav-bar { display:flex; align-items:center; justify-content:space-between; padding:.85rem 5%; background:rgba(10,10,15,.95); backdrop-filter:blur(20px); border-bottom:0.5px solid var(--border); position:fixed; top:0; left:0; right:0; z-index:999; }
   .nav-bar span { color:var(--gold); font-family:'Arimo',sans-serif; font-size:1.2rem; font-weight:700; letter-spacing:.15em; }
+  .nav-bar a { color:var(--gold); text-decoration:none; font-family:'Arimo',sans-serif; font-size:1.2rem; font-weight:700; letter-spacing:.15em; }
   .nav-bar .logout { background:transparent; color:#E74C3C; border:0.5px solid rgba(231,76,60,.3); padding:.4rem .8rem; border-radius:4px; cursor:pointer; font-size:.8rem; }
   .nav-bar .logout:hover { background:rgba(231,76,60,.1); }
   .account-wrap { max-width:900px; margin:0 auto; padding:2rem 5% 4rem; }
-  .account-wrap h1 { font-size:1.6rem; margin-bottom:2rem; }
+  .account-wrap h1 { font-size:1.6rem; margin-bottom:.3rem; }
+  .account-wrap .sub { color:var(--text-muted); margin-bottom:2rem; font-size:.9rem; }
   .profile-card { background:var(--dark-3); border:0.5px solid var(--border); border-radius:12px; padding:1.5rem; margin-bottom:2rem; }
   .profile-card h2 { font-size:1rem; margin-bottom:1rem; color:var(--gold); }
   .profile-card .row { display:flex; gap:1rem; margin-bottom:.8rem; flex-wrap:wrap; align-items:center; }
@@ -38,12 +40,20 @@
   .status-badge.shipped { background:rgba(52,152,219,.12); color:#3498DB; }
   .status-badge.delivered { background:rgba(46,204,113,.12); color:#2ECC71; }
   .status-badge.cancelled { background:rgba(231,76,60,.12); color:#E74C3C; }
+  .cart-item { display:flex; align-items:center; gap:1rem; padding:.8rem 0; border-bottom:0.5px solid rgba(255,255,255,.04); }
+  .cart-item:last-child { border:none; }
+  .cart-item .ci-img { font-size:1.8rem; width:2.5rem; text-align:center; }
+  .cart-item .ci-info { flex:1; }
+  .cart-item .ci-name { font-weight:600; font-size:.9rem; }
+  .cart-item .ci-variant { font-size:.75rem; color:var(--text-muted); }
+  .cart-item .ci-qty { color:var(--text-muted); font-size:.82rem; }
+  .cart-item .ci-total { color:var(--gold); font-weight:600; font-size:.95rem; }
 </style>
   <link rel="stylesheet" crossorigin href="/assets/style-qalD0Ayd.css">
 </head>
 <body>
 <nav class="nav-bar">
-  <a href="/" style="color:var(--gold);text-decoration:none;font-family:'Arimo',sans-serif;font-size:1.2rem;font-weight:700;letter-spacing:.15em;">LUMICHARGE</a>
+  <a href="/">LUMICHARGE</a>
   <button class="logout" onclick="logout()">Cerrar sesión</button>
 </nav>
 <div class="account-wrap" id="app">
@@ -63,12 +73,38 @@ if (!TOKEN) {
 async function loadAccount() {
   try {
     const [me, orders] = await Promise.all([
-      fetch(API + '/api/customer/me', { headers: { 'Authorization': 'Bearer ' + TOKEN } }).then(r => r.json()),
-      fetch(API + '/api/customer/orders', { headers: { 'Authorization': 'Bearer ' + TOKEN } }).then(r => r.json()),
+      fetch(API + '/api/customer/me', { headers: { 'Authorization': 'Bearer ' + TOKEN } }).then(r => { if (!r.ok) throw new Error('No autorizado'); return r.json(); }),
+      fetch(API + '/api/customer/orders', { headers: { 'Authorization': 'Bearer ' + TOKEN } }).then(r => { if (!r.ok) throw new Error('No autorizado'); return r.json(); }),
     ]);
 
+    // Cart from localStorage
+    let cartHtml = '';
+    let cartTotal = 0;
+    try {
+      const cart = JSON.parse(localStorage.getItem('lumicharge_cart') || '[]');
+      if (cart.length > 0) {
+        cartHtml = cart.map(i => {
+          const total = i.price * i.quantity;
+          cartTotal += total;
+          return `<div class="cart-item">
+            <div class="ci-img">${i.image || '📦'}</div>
+            <div class="ci-info">
+              <div class="ci-name">${esc(i.name)}</div>
+              <div class="ci-variant">${esc(i.variant || '')} · €${i.price.toFixed(2).replace('.',',')} ud.</div>
+            </div>
+            <div class="ci-qty">×${i.quantity}</div>
+            <div class="ci-total">€${total.toFixed(2).replace('.',',')}</div>
+          </div>`;
+        }).join('');
+        cartHtml += `<div style="text-align:right;padding:.8rem 0 0;border-top:0.5px solid rgba(255,255,255,.06);font-weight:700;color:var(--gold);font-size:1rem;">Total carrito: €${cartTotal.toFixed(2).replace('.',',')}</div>`;
+      } else {
+        cartHtml = '<div class="empty">Tu carrito está vacío. <a href="/" style="color:var(--gold);">Ir a la tienda</a></div>';
+      }
+    } catch { cartHtml = '<div class="empty">Error al cargar el carrito</div>'; }
+
     content.innerHTML = `
-      <h1>👋 Hola, ${esc(me.name || 'Cliente')}</h1>
+      <h1>👋 Hola, ${esc(me.name || me.email.split('@')[0])}</h1>
+      <p class="sub">Bienvenido a tu panel. Aquí puedes ver tus datos, tu carrito y tus pedidos.</p>
 
       <div class="profile-card">
         <h2>📋 Mis datos</h2>
@@ -81,9 +117,14 @@ async function loadAccount() {
         <div id="profileMsg" style="font-size:.82rem;margin-top:.5rem;"></div>
       </div>
 
+      <div class="profile-card">
+        <h2>🛒 Mi carrito</h2>
+        ${cartHtml}
+      </div>
+
       <h2 style="font-size:1rem;margin-bottom:1rem;">📦 Mis pedidos (${orders.length})</h2>
       ${orders.length === 0
-        ? '<div class="empty">No tienes pedidos aún. <a href="/#comprar" style="color:var(--gold);">¡Compra ahora!</a></div>'
+        ? '<div class="empty">No tienes pedidos aún. <a href="/" style="color:var(--gold);">¡Compra ahora!</a></div>'
         : orders.map(o => `
           <div class="order-card">
             <span class="oid">#${esc(o.id.slice(0, 8))}</span>
@@ -94,20 +135,22 @@ async function loadAccount() {
         `).join('')
       }
     `;
-  } catch {
-    content.innerHTML = '<div class="login-msg"><h2>⚠️ Sesión expirada</h2><p style="margin-top:.5rem;"><a href="/login">Iniciar sesión de nuevo</a></p></div>';
+  } catch (err) {
     localStorage.removeItem('lumicharge_token');
+    content.innerHTML = '<div class="login-msg"><div style="font-size:3rem;margin-bottom:1rem;">⏳</div><h2>Sesión expirada</h2><p style="margin-top:.5rem;color:var(--text-muted);">Vuelve a iniciar sesión para continuar.</p><p style="margin-top:1rem;"><a href="/login">Iniciar sesión</a></p></div>';
   }
 }
 
 async function saveProfile() {
   const data = { name: document.getElementById('pfName').value, default_addr: document.getElementById('pfAddr').value, default_city: document.getElementById('pfCity').value, default_zip: document.getElementById('pfZip').value };
-  const res = await fetch(API + '/api/customer/profile', { method:'PUT', headers:{'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json'}, body:JSON.stringify(data) });
-  const msg = document.getElementById('profileMsg');
-  if (res.ok) { msg.style.color = '#2ECC71'; msg.textContent = '✓ Datos guardados'; } else { msg.style.color = '#E74C3C'; msg.textContent = 'Error al guardar'; }
+  try {
+    const res = await fetch(API + '/api/customer/profile', { method:'PUT', headers:{'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    const msg = document.getElementById('profileMsg');
+    if (res.ok) { msg.style.color = '#2ECC71'; msg.textContent = '✓ Datos guardados'; } else { msg.style.color = '#E74C3C'; msg.textContent = 'Error al guardar'; }
+  } catch { document.getElementById('profileMsg').textContent = 'Error de conexión'; }
 }
 
-function logout() { localStorage.removeItem('lumicharge_token'); window.location.href = '/'; }
+function logout() { localStorage.removeItem('lumicharge_token'); localStorage.removeItem('lumicharge_user'); window.location.href = '/'; }
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 </script>
 </body>
