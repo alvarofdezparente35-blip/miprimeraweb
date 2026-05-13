@@ -5,9 +5,9 @@
   "main": "server.ts",
   "type": "module",
   "scripts": {
-    "start": "tsx server.ts",
+    "start": "node dist/server.js",
     "dev": "tsx watch server.ts",
-    "build": "tsc && cd frontend && npx --yes vite build",
+    "build": "npx tsc && cd frontend && npx --yes vite build",
     "build:frontend": "cd frontend && npx --yes vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
