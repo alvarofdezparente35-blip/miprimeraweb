@@ -111,6 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initChat();
   initThreeScene();
   initStripe();
+  updateUserBadge();
   window.addEventListener('resize', applyHeaderOffset);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMobileNav(); });
   if ((document as any).fonts) (document as any).fonts.ready.then(applyHeaderOffset);
@@ -201,5 +202,28 @@ ric(() => {
     }).observe({ type: 'layout-shift', buffered: true });
   } catch { /* ignore */ }
 });
+
+// ── User badge ──────────────────────────────────────────────────────
+function updateUserBadge() {
+  const token = localStorage.getItem('lumicharge_token');
+  const userEl = document.querySelector('.user-badge');
+  const existing = document.querySelector('.user-badge');
+
+  if (token && !existing) {
+    const name = localStorage.getItem('lumicharge_user') || 'Mi cuenta';
+    const link = document.querySelector('.nav-right') || document.querySelector('.nav-links');
+    if (link) {
+      const badge = document.createElement('a');
+      badge.href = '/account';
+      badge.className = 'ssl-badge user-badge';
+      badge.style.cssText = 'text-decoration:none;cursor:pointer;margin-right:.3rem;';
+      badge.textContent = '👤 ' + name.slice(0, 8);
+      link.insertBefore(badge, link.querySelector('.lang-wrap') || link.firstChild);
+    }
+  } else if (!token && existing) {
+    existing.remove();
+  }
+}
+window.addEventListener('storage', (e) => { if (e.key === 'lumicharge_token') updateUserBadge(); });
 
 console.info('%c⚡ LumiCharge Performance Engine loaded', 'color:#C9A84C;font-weight:bold;font-size:12px');

@@ -160,7 +160,8 @@
 
       if (data.token) {
         localStorage.setItem('lumicharge_token', data.token);
-        window.location.href = '/account';
+        localStorage.setItem('lumicharge_user', data.customer?.name || data.customer?.email || '');
+        window.location.href = '/';
       } else {
         showError(data.error || 'Credenciales incorrectas. Inténtalo de nuevo.');
         passInput.value = '';
