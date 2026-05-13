@@ -7,7 +7,8 @@
   "scripts": {
     "start": "tsx server.ts",
     "dev": "tsx watch server.ts",
-    "build": "tsc",
+    "build": "tsc && cd frontend && npx --yes vite build",
+    "build:frontend": "cd frontend && npx --yes vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
