@@ -376,8 +376,8 @@ app.post('/api/customer/register', async (req, res) => {
     res.status(201).json({ token, customer: { id: customer.id, email: customer.email, name: customer.name } });
   } catch (err: any) {
     if (err?.code === 'SQLITE_CONSTRAINT') { res.status(400).json({ error: 'Este email ya está registrado. ¿Olvidaste tu contraseña?' }); return; }
-    logger.error({ err, path: '/api/customer/register' }, 'Error registering');
-    res.status(500).json({ error: 'Error interno del servidor. Inténtalo de nuevo más tarde.' });
+    logger.error({ err: err?.message || err, stack: err?.stack, path: '/api/customer/register' }, 'Error registering');
+    res.status(500).json({ error: 'Error al crear cuenta: ' + (err?.message || 'error interno') });
   }
 });
 
