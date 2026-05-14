@@ -158,7 +158,8 @@
       <div class="chart-box"><canvas id="revenueChart"></canvas></div>
     </div>
     <div class="tabs">
-    <button class="tab active" onclick="switchTab('orders', this)">📦 Pedidos</button>
+    <button class="tab active" onclick="switchTab('dashboard', this)">📊 Dashboard</button>
+    <button class="tab" onclick="switchTab('orders', this)">📦 Pedidos</button>
     <button class="tab" onclick="switchTab('products', this)">📋 Productos</button>
     <button class="tab" onclick="switchTab('coupons', this)">🏷️ Cupones</button>
     <button class="tab" onclick="switchTab('blog', this)">📝 Blog</button>
@@ -167,8 +168,29 @@
     <button class="tab" onclick="switchTab('audit', this)">📋 Auditoría</button>
   </div>
 
+  <!-- ── DASHBOARD TAB ── -->
+  <div class="tab-content active" id="tabDashboard">
+    <div class="stats" id="dashStats">
+      <div class="stat-card"><span class="num" id="dsToday">0</span><span class="lbl">Pedidos hoy</span><span class="trend" id="dsTodayRev" style="color:#C9A84C"></span></div>
+      <div class="stat-card"><span class="num" id="dsWeek">0</span><span class="lbl">Esta semana</span><span class="trend" id="dsWeekRev"></span></div>
+      <div class="stat-card"><span class="num" id="dsMonth">0</span><span class="lbl">Este mes</span><span class="trend" id="dsMonthRev"></span></div>
+      <div class="stat-card"><span class="num" id="dsTotal">0</span><span class="lbl">Total pedidos</span></div>
+      <div class="stat-card"><span class="num" id="dsRevenue">€0</span><span class="lbl">Ingresos totales</span></div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-box"><canvas id="dashStatusChart"></canvas></div>
+      <div class="chart-box"><canvas id="dashRevenueChart"></canvas></div>
+    </div>
+    <div class="chart-row" style="grid-template-columns:1fr;">
+      <div class="chart-box">
+        <h3 style="font-size:.9rem;margin-bottom:.8rem;color:var(--gold);">🏆 Productos más vendidos</h3>
+        <div id="topProducts"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── ORDERS TAB ── -->
-  <div class="tab-content active" id="tabOrders">
+  <div class="tab-content" id="tabOrders">
     <div class="toolbar">
       <input type="text" id="searchInput" placeholder="🔍 Buscar por nombre, email o ID..." oninput="filterOrders()">
       <span class="badge" id="newOrderBadge">🆕 Nuevo</span>
@@ -425,7 +447,7 @@ async function adminLogin() {
       csrfToken = data.csrfToken;
       document.getElementById('loginWrap').style.display = 'none';
       document.getElementById('adminWrap').classList.add('open');
-      loadOrders();
+      loadDashboard();
       loadMaintenanceStatus();
       setInterval(loadOrders, 15000);
       connectWebSocket();
@@ -498,6 +520,13 @@ function showNotification(msg) {
   window._notifTimer = setTimeout(() => el.classList.remove('show'), 4000);
 }
 
+let dashStatusChart = null;
+let dashRevenueChart = null;
+
+function loadDashboard() {
+  loadOrders();
+}
+
 async function loadOrders() {
   const data = await apiCall('/api/orders');
   if (!data) return;
@@ -505,6 +534,78 @@ async function loadOrders() {
   renderOrders(data);
   updateStats(data);
   updateCharts(data);
+  updateDashboard(data);
+}
+
+function updateDashboard(data) {
+  const now = Date.now();
+  const today = data.filter(o => { const d = new Date(o.created); return d.toDateString() === new Date().toDateString(); });
+  const thisWeek = data.filter(o => now - new Date(o.created).getTime() < 7 * 864e5);
+  const thisMonth = data.filter(o => { const d = new Date(o.created); const m = new Date(); return d.getMonth() === m.getMonth() && d.getFullYear() === m.getFullYear(); });
+
+  document.getElementById('dsToday').textContent = today.length;
+  document.getElementById('dsTodayRev').textContent = '€' + today.reduce((s,o) => s + (o.status !== 'cancelled' ? o.total : 0), 0).toFixed(2).replace('.',',');
+  document.getElementById('dsWeek').textContent = thisWeek.length;
+  document.getElementById('dsWeekRev').textContent = '€' + thisWeek.reduce((s,o) => s + (o.status !== 'cancelled' ? o.total : 0), 0).toFixed(2).replace('.',',');
+  document.getElementById('dsMonth').textContent = thisMonth.length;
+  document.getElementById('dsMonthRev').textContent = '€' + thisMonth.reduce((s,o) => s + (o.status !== 'cancelled' ? o.total : 0), 0).toFixed(2).replace('.',',');
+  document.getElementById('dsTotal').textContent = data.length;
+  document.getElementById('dsRevenue').textContent = '€' + data.reduce((s,o) => s + (o.status !== 'cancelled' ? o.total : 0), 0).toFixed(2).replace('.',',');
+
+  // Status chart
+  const statuses = ['pending','paid','shipped','delivered','cancelled'];
+  const counts = statuses.map(s => data.filter(o => o.status === s).length);
+  const colors = ['#F39C12','#2ECC71','#3498DB','#2ECC71','#E74C3C'];
+
+  if (!dashStatusChart) {
+    dashStatusChart = new Chart(document.getElementById('dashStatusChart').getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: statuses, datasets: [{ data: counts, backgroundColor: colors, borderWidth: 0 }] },
+      options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#9B9AA8', font: { size: 11 } } } } }
+    });
+  } else {
+    dashStatusChart.data.datasets[0].data = counts;
+    dashStatusChart.update();
+  }
+
+  // Revenue 7-day chart
+  const days = []; const revenues = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now - i * 864e5);
+    const dayStr = d.toISOString().slice(0,10);
+    const dayData = data.filter(o => o.created?.startsWith(dayStr) && o.status !== 'cancelled');
+    days.push(d.toLocaleDateString('es-ES', { weekday:'short' }));
+    revenues.push(dayData.reduce((s,o) => s+o.total, 0));
+  }
+
+  if (!dashRevenueChart) {
+    dashRevenueChart = new Chart(document.getElementById('dashRevenueChart').getContext('2d'), {
+      type: 'bar',
+      data: { labels: days, datasets: [{ label: 'Ingresos', data: revenues, backgroundColor: 'rgba(201,168,76,.6)', borderColor: '#C9A84C', borderWidth: 1 }] },
+      options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9B9AA8' } }, y: { ticks: { color: '#9B9AA8' } } } }
+    });
+  } else {
+    dashRevenueChart.data.datasets[0].data = revenues;
+    dashRevenueChart.update();
+  }
+
+  // Top products (by order quantity)
+  const productCounts = {};
+  data.forEach(o => {
+    const key = o.name || 'Sin nombre';
+    productCounts[key] = (productCounts[key] || 0) + (o.quantity || 1);
+  });
+  const sorted = Object.entries(productCounts).sort((a,b) => b[1] - a[1]).slice(0, 5);
+  const tp = document.getElementById('topProducts');
+  if (tp) {
+    tp.innerHTML = sorted.length === 0
+      ? '<div style="color:var(--text-muted);padding:1rem;text-align:center;">Sin datos de ventas aún</div>'
+      : sorted.map(([name, count], i) => `<div style="display:flex;align-items:center;gap:.8rem;padding:.6rem 0;border-bottom:0.5px solid rgba(255,255,255,.04);">
+        <span style="color:${i === 0 ? '#C9A84C' : '#9B9AA8'};font-weight:${i === 0 ? '700' : '400'};width:1.5rem;">#${i+1}</span>
+        <span style="flex:1;">${esc(name)}</span>
+        <span style="color:var(--gold);font-weight:600;">${count} vendidos</span>
+      </div>`).join('');
+  }
 }
 
 function renderOrders(data) {
@@ -884,12 +985,13 @@ function editPost(id) {
   if (p) openPostModal(p);
 }
 
-// ── Update switchTab to load coupons + posts ──
+// ── Update switchTab ──
 switchTab = function(tab, btn) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  if (tab === 'dashboard') loadDashboard();
   if (tab === 'products') loadProducts();
   if (tab === 'coupons') loadCoupons();
   if (tab === 'blog') loadPosts();
