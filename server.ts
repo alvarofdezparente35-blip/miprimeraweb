@@ -201,11 +201,37 @@ function authenticateToken(req: express.Request, res: express.Response, next: ex
       }
     }
 
+    // Inactivity check (admin only)
+    if (sessionId && sessionFingerprints.has(sessionId)) {
+      if (isAdminSessionExpired(sessionId)) {
+        logger.warn({ sessionId }, 'Sesión admin expirada por inactividad');
+        res.clearCookie('access_token', { path: '/' });
+        res.clearCookie('refresh_token', { path: '/api/auth' });
+        res.status(401).json({ error: 'SESSION_EXPIRED' });
+        return;
+      }
+      touchAdminSession(sessionId);
+    }
+
     next();
   } catch (err: any) {
     if (err.name === 'TokenExpiredError') { res.status(401).json({ error: 'TOKEN_EXPIRED' }); return; }
     res.status(403).json({ error: 'TOKEN_INVALID' });
   }
+}
+
+// ── Admin security ───────────────────────────────────────────────────
+const adminSessions = new Map<string, { lastActive: number }>();
+const ADMIN_INACTIVITY_MS = 30 * 60 * 1000;
+const adminWriteLimiter = rateLimit({ windowMs: 60 * 1000, max: 20, message: { error: 'Demasiadas operaciones. Espera un minuto.' } });
+
+function touchAdminSession(sessionId: string): void {
+  adminSessions.set(sessionId, { lastActive: Date.now() });
+}
+
+function isAdminSessionExpired(sessionId: string): boolean {
+  const s = adminSessions.get(sessionId);
+  return !s || (Date.now() - s.lastActive > ADMIN_INACTIVITY_MS);
 }
 
 // ── Init admin ───────────────────────────────────────────────────────
@@ -305,6 +331,11 @@ app.post('/api/auth/login', async (req, res) => {
     });
 
     setAuthCookies(res, accessToken, refreshToken);
+    touchAdminSession(sessionId);
+
+    // Audit log
+    db.logAdminAction('login', 'Login exitoso desde ' + ip, ip);
+
     logger.info({ ip }, 'Login exitoso');
     res.json({ csrfToken });
   } catch (err) {
@@ -506,7 +537,7 @@ app.get('/api/orders', authenticateToken, (req, res) => {
   }
 });
 
-app.put('/api/orders/:id/status', authenticateToken, (req, res) => {
+app.put('/api/orders/:id/status', authenticateToken, adminWriteLimiter, (req, res) => {
   try {
     const status: string = req.body.status;
     const valid = ['pending', 'paid', 'shipped', 'delivered', 'cancelled'];
@@ -519,6 +550,7 @@ app.put('/api/orders/:id/status', authenticateToken, (req, res) => {
       emitToAdmins('order:updated', order);
       sendOrderStatusUpdate(order);
     }
+    db.logAdminAction('order:status', `Pedido ${orderId.slice(0, 8)} → ${status}`, req.ip || '');
     res.json(order);
   } catch (err) {
     logger.error({ err, path: '/api/orders/:id/status' }, 'Error actualizando estado');
@@ -666,10 +698,19 @@ app.get('/api/orders/:id/pdf', authenticateToken, (req, res) => {
 
 // ── Maintenance mode (admin only) ────────────────────────────────────
 app.get('/api/admin/maintenance', authenticateToken, (req, res) => res.json({ maintenance: maintenanceMode }));
-app.post('/api/admin/maintenance', authenticateToken, (req, res) => {
+app.post('/api/admin/maintenance', authenticateToken, adminWriteLimiter, (req, res) => {
   maintenanceMode = !!req.body.enabled;
+  db.logAdminAction('maintenance', maintenanceMode ? 'Activado' : 'Desactivado', req.ip || '');
   logger.info({ maintenance: maintenanceMode }, 'Modo mantenimiento cambiado');
   res.json({ maintenance: maintenanceMode });
+});
+
+// ── Admin audit log ──────────────────────────────────────────────────
+app.get('/api/admin/audit', authenticateToken, (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 50, 200);
+    res.json(db.getAuditLog(limit));
+  } catch { res.status(500).json({ error: 'Error al obtener auditoría' }); }
 });
 
 // ── Products API ─────────────────────────────────────────────────────
@@ -715,7 +756,7 @@ app.post('/api/products', authenticateToken, (req, res) => {
   }
 });
 
-app.put('/api/products/:id', authenticateToken, (req, res) => {
+app.put('/api/products/:id', authenticateToken, adminWriteLimiter, (req, res) => {
   try {
     const raw = req.body;
     const sanitized: Record<string, unknown> = {};
@@ -729,6 +770,7 @@ app.put('/api/products/:id', authenticateToken, (req, res) => {
 
     const product = db.updateProduct(req.params.id as string, sanitized);
     if (!product) { res.status(404).json({ error: 'Producto no encontrado' }); return; }
+    db.logAdminAction('product:update', `Producto ${product.name}`, req.ip || '');
     res.json(product);
   } catch (err) {
     logger.error({ err, path: '/api/products PUT' }, 'Error updating product');
@@ -736,10 +778,11 @@ app.put('/api/products/:id', authenticateToken, (req, res) => {
   }
 });
 
-app.delete('/api/products/:id', authenticateToken, (req, res) => {
+app.delete('/api/products/:id', authenticateToken, adminWriteLimiter, (req, res) => {
   try {
     const deleted = db.deleteProduct(req.params.id as string);
     if (!deleted) { res.status(404).json({ error: 'Producto no encontrado' }); return; }
+    db.logAdminAction('product:delete', `ID: ${req.params.id.slice(0, 8)}`, req.ip || '');
     res.json({ ok: true });
   } catch (err) {
     logger.error({ err, path: '/api/products DELETE' }, 'Error deleting product');

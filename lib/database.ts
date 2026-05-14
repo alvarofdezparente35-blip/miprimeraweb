@@ -135,6 +135,14 @@ export function init(): void {
       created     TEXT DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS admin_audit (
+      id          TEXT PRIMARY KEY,
+      action      TEXT NOT NULL,
+      detail      TEXT DEFAULT '',
+      ip          TEXT DEFAULT '',
+      created     TEXT DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS orders (
       id          TEXT PRIMARY KEY,
       customer_id TEXT DEFAULT '',
@@ -576,4 +584,14 @@ export function getAdmin(): AdminRow | null {
 
 export function createAdmin(password: string): void {
   db.prepare('INSERT INTO admins (password) VALUES (?)').run(password);
+}
+
+// ── Admin audit log ─────────────────────────────────────────────────
+export function logAdminAction(action: string, detail = '', ip = ''): void {
+  const id = uuidv4();
+  db.prepare('INSERT INTO admin_audit (id, action, detail, ip) VALUES (?, ?, ?, ?)').run(id, action, detail.slice(0, 500), ip);
+}
+
+export function getAuditLog(limit = 50): { id: string; action: string; detail: string; ip: string; created: string }[] {
+  return db.prepare('SELECT * FROM admin_audit ORDER BY created DESC LIMIT ?').all(limit) as any[];
 }

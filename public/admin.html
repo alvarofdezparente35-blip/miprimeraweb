@@ -164,6 +164,7 @@
     <button class="tab" onclick="switchTab('blog', this)">📝 Blog</button>
     <button class="tab" onclick="switchTab('newsletter', this)">📬 Newsletter</button>
     <button class="tab" onclick="switchTab('reviews', this)">⭐ Reseñas</button>
+    <button class="tab" onclick="switchTab('audit', this)">📋 Auditoría</button>
   </div>
 
   <!-- ── ORDERS TAB ── -->
@@ -328,6 +329,15 @@
       <tbody id="revsBody"></tbody>
     </table>
     <div class="empty" id="emptyRevs">No hay reseñas aún.</div>
+  </div>
+
+  <!-- ── AUDIT TAB ── -->
+  <div class="tab-content" id="tabAudit">
+    <div class="toolbar"><span style="color:#9B9AA8;font-size:.82rem;" id="auditCount">Registro de actividades</span></div>
+    <table>
+      <thead><tr><th>Acción</th><th>Detalle</th><th>IP</th><th>Fecha</th></tr></thead>
+      <tbody id="auditBody"></tbody>
+    </table>
   </div>
 
   <!-- ── POST MODAL ── -->
@@ -885,7 +895,22 @@ switchTab = function(tab, btn) {
   if (tab === 'blog') loadPosts();
   if (tab === 'newsletter') loadSubs();
   if (tab === 'reviews') loadReviews();
+  if (tab === 'audit') loadAudit();
 };
+
+// ── AUDIT LOG ──
+async function loadAudit() {
+  const data = await apiCall('/api/admin/audit?limit=100');
+  if (!data) return;
+  const tbody = document.getElementById('auditBody');
+  document.getElementById('auditCount').textContent = data.length + ' actividades';
+  tbody.innerHTML = data.map(a => `<tr>
+    <td><span class="status" style="background:rgba(201,168,76,.12);color:#C9A84C;text-transform:none;">${esc(a.action)}</span></td>
+    <td style="color:#9B9AA8;font-size:.82rem">${esc(a.detail)}</td>
+    <td style="color:#555;font-family:monospace;font-size:.78rem">${esc(a.ip)}</td>
+    <td style="color:#9B9AA8;font-size:.8rem">${new Date(a.created).toLocaleString('es-ES')}</td>
+  </tr>`).join('');
+}
 
 // ── REVIEWS ──
 async function loadReviews() {
