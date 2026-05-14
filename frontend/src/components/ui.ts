@@ -26,9 +26,23 @@ export function toggleFaq(btn: HTMLButtonElement): void {
   ico.classList.toggle('open', open);
 }
 
-// ── Newsletter ───────────────────────────────────────────────────────
+// ── Newsletter (solo una vez) ────────────────────────────────────────
 export function closeNl(): void {
   document.getElementById('nlOverlay')?.classList.remove('show');
+  localStorage.setItem('lumicharge_nl_closed', '1');
+}
+
+export function shouldShowNl(): boolean {
+  if (localStorage.getItem('lumicharge_nl_subscribed')) return false;
+  if (localStorage.getItem('lumicharge_nl_closed')) return false;
+  return true;
+}
+
+export function initNewsletterPopup(): void {
+  if (!shouldShowNl()) return;
+  setTimeout(() => {
+    document.getElementById('nlOverlay')?.classList.add('show');
+  }, 5000);
 }
 
 export async function claimDiscount(): Promise<void> {
@@ -54,6 +68,7 @@ export async function claimDiscount(): Promise<void> {
     const data = await res.json();
 
     if (data.ok) {
+      localStorage.setItem('lumicharge_nl_subscribed', '1');
       if (code) { code.style.display = 'block'; code.textContent = 'LUMI10'; }
       if (btn) { btn.textContent = '✓ Código: LUMI10'; btn.style.background = 'var(--success)'; }
       setTimeout(closeNl, 3500);
@@ -341,13 +356,6 @@ export function initStickyBar(): void {
     bar.classList.toggle('show', !e.isIntersecting);
   }, { threshold: 0.1 });
   obs.observe(hero);
-}
-
-// ── Newsletter popup timer ───────────────────────────────────────────
-export function initNewsletterPopup(): void {
-  setTimeout(() => {
-    document.getElementById('nlOverlay')?.classList.add('show');
-  }, 18000);
 }
 
 // ── Mobile nav ───────────────────────────────────────────────────────
