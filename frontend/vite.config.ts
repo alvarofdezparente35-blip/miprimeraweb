@@ -14,6 +14,7 @@ export default defineConfig({
         blog: path.resolve(__dirname, 'blog.html'),
         post: path.resolve(__dirname, 'post.html'),
         tracking: path.resolve(__dirname, 'tracking.html'),
+        product: path.resolve(__dirname, 'product.html'),
         login: path.resolve(__dirname, 'login.html'),
         register: path.resolve(__dirname, 'register.html'),
         account: path.resolve(__dirname, 'account.html'),

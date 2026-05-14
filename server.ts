@@ -1013,6 +1013,9 @@ app.post('/api/tracking', (req, res) => {
   } catch { res.status(500).json({ error: 'Error al buscar pedido' }); }
 });
 
+app.get('/producto/:id', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'product.html'));
+});
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'register.html')));
 app.get('/account', (req, res) => res.sendFile(path.join(__dirname, 'public', 'account.html')));

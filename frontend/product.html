@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">Producto — LumiCharge</title>
+<meta name="description" id="pageDesc" content="">
+<link rel="canonical" id="pageCanonical" href="">
+<meta property="og:title" id="ogTitle" content="">
+<meta property="og:description" id="ogDesc" content="">
+<meta property="og:image" content="https://lumicharge.es/og-lumicharge.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&display=swap"></noscript>
+<link rel="stylesheet" href="/src/style.css">
+<style>
+  body { padding-top: 60px; }
+  .nav-bar { display:flex; align-items:center; justify-content:space-between; padding:.85rem 5%; background:rgba(10,10,15,.95); backdrop-filter:blur(20px); border-bottom:0.5px solid var(--border); position:fixed; top:0; left:0; right:0; z-index:999; }
+  .nav-bar a { color:var(--gold); text-decoration:none; font-family:'Arimo',sans-serif; font-size:1.2rem; font-weight:700; letter-spacing:.15em; }
+  .nav-bar .back { color:var(--text-muted); font-size:.82rem; letter-spacing:.08em; text-transform:uppercase; }
+  .nav-bar .back:hover { color:var(--gold); }
+  .product-page { max-width: 1100px; margin: 0 auto; padding: 2rem 5% 4rem; }
+  .product-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+  .product-image { background: var(--dark-3); border: 0.5px solid var(--border); border-radius: 16px; padding: 3rem; text-align: center; font-size: 10rem; }
+  .product-info h1 { font-size: clamp(1.8rem, 3vw, 2.5rem); margin-bottom: .5rem; }
+  .product-info .price { font-size: 2.2rem; font-weight: 700; color: var(--gold); margin-bottom: .3rem; }
+  .product-info .original { font-size: 1rem; color: var(--text-muted); text-decoration: line-through; margin-left: .5rem; }
+  .product-info .stock { font-size: .85rem; color: var(--text-muted); margin-bottom: 1rem; }
+  .product-info .stock.low { color: #E74C3C; }
+  .product-info .desc { font-size: .95rem; color: var(--text-muted); line-height: 1.7; margin-bottom: 1.5rem; }
+  .product-info .btn-add { width:100%; background:var(--gold); color:var(--dark); border:none; padding:1rem; border-radius:8px; font-size:1rem; font-weight:700; cursor:pointer; }
+  .product-info .btn-add:hover { background:var(--gold-light); }
+  .product-info .meta { margin-top: 1.5rem; font-size: .82rem; color: var(--text-muted); }
+  .loading { text-align: center; padding: 4rem; color: var(--text-muted); font-size: 1.1rem; }
+  .reviews-section { margin-top: 3rem; padding-top: 2rem; border-top: 0.5px solid var(--border); }
+  .reviews-section h2 { font-size: 1.3rem; margin-bottom: 1.5rem; }
+  .review-card { background:var(--dark-3); border:0.5px solid var(--border); border-radius:10px; padding:1.2rem; margin-bottom:.8rem; }
+  .review-card .stars { color:var(--gold); font-size:.9rem; margin-bottom:.4rem; }
+  .review-card .name { font-size:.85rem; font-weight:600; }
+  .review-card .date { font-size:.75rem; color:var(--text-muted); }
+  .review-card .comment { font-size:.88rem; color:var(--text-muted); margin-top:.4rem; line-height:1.5; }
+  .review-form { background:var(--dark-3); border:0.5px solid var(--border); border-radius:10px; padding:1.2rem; margin-top:1.5rem; }
+  .review-form h3 { font-size:.95rem; margin-bottom:.8rem; }
+  .review-form input,.review-form textarea { width:100%; background:var(--dark-4); border:0.5px solid rgba(255,255,255,.15); border-radius:6px; padding:.6rem .8rem; color:var(--text); font-size:.85rem; margin-bottom:.5rem; font-family:'Arimo',sans-serif; }
+  .review-form textarea { resize:vertical; min-height:60px; }
+  .review-form .stars-input { display:flex; gap:.3rem; margin-bottom:.5rem; }
+  .review-form .stars-input button { background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--text-muted); padding:0; }
+  .review-form .stars-input button.active { color:var(--gold); }
+  .review-form button[type=submit] { background:var(--gold); color:var(--dark); border:none; padding:.6rem 1.2rem; border-radius:6px; font-size:.85rem; font-weight:600; cursor:pointer; }
+  @media (max-width:768px) { .product-grid { grid-template-columns:1fr; gap:1.5rem; } .product-image { font-size:6rem; padding:2rem; } }
+</style>
+</head>
+<body>
+<nav class="nav-bar"><a href="/">LUMICHARGE</a><a href="javascript:history.back()" class="back">← Volver</a></nav>
+<div class="product-page">
+  <div class="loading" id="loading">Cargando producto...</div>
+  <div id="productContent" style="display:none;">
+    <div class="product-grid">
+      <div class="product-image" id="prodImage">⚡</div>
+      <div class="product-info">
+        <h1 id="prodName"></h1>
+        <div><span class="price" id="prodPrice"></span><span class="original" id="prodOriginal"></span></div>
+        <div class="stock" id="prodStock"></div>
+        <div class="desc" id="prodDesc"></div>
+        <button class="btn-add" onclick="addProductToCart()">🛒 Añadir al carrito</button>
+        <div class="meta" id="prodMeta"></div>
+      </div>
+    </div>
+    <div class="reviews-section" id="reviewsSection">
+      <h2>⭐ Reseñas de clientes</h2>
+      <div id="reviewsContainer"><p style="color:var(--text-muted);">Cargando reseñas...</p></div>
+      <div class="review-form">
+        <h3>Escribe tu reseña</h3>
+        <div class="stars-input" id="starsInput"></div>
+        <input type="text" id="revName" placeholder="Tu nombre">
+        <textarea id="revComment" placeholder="Cuéntanos tu experiencia..."></textarea>
+        <button type="submit" onclick="submitReview()">Enviar reseña</button>
+        <div id="revMsg" style="font-size:.82rem;margin-top:.5rem;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const PRODUCT_ID = window.location.pathname.replace('/producto/', '');
+const API = window.location.origin;
+let selectedRating = 5;
+let currentProduct = null;
+
+async function loadProduct() {
+  try {
+    const res = await fetch(API + '/api/products/' + encodeURIComponent(PRODUCT_ID));
+    if (!res.ok) throw new Error('No encontrado');
+    const p = await res.json();
+    currentProduct = p;
+
+    document.title = p.name + ' — LumiCharge';
+    document.getElementById('pageDesc').content = p.description || p.name;
+    document.getElementById('pageCanonical').href = '/producto/' + p.id;
+    document.getElementById('ogTitle').content = p.name + ' — €' + p.price.toFixed(2).replace('.',',');
+    document.getElementById('ogDesc').content = p.description || '';
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('productContent').style.display = 'block';
+    document.getElementById('prodImage').textContent = p.image || '📦';
+    document.getElementById('prodName').textContent = p.name;
+    document.getElementById('prodPrice').textContent = '€' + p.price.toFixed(2).replace('.',',');
+    document.getElementById('prodOriginal').textContent = '€' + (p.price * 2).toFixed(2).replace('.',',');
+    const stockEl = document.getElementById('prodStock');
+    stockEl.textContent = p.stock > 0 ? '✅ ' + p.stock + ' en stock' : '❌ Agotado';
+    stockEl.className = 'stock' + (p.stock < 5 ? ' low' : '');
+    document.getElementById('prodDesc').textContent = p.description || '';
+    document.getElementById('prodMeta').textContent = 'Categoría: ' + (p.category || 'general').toUpperCase();
+
+    loadReviews();
+  } catch {
+    document.getElementById('loading').innerHTML = '⚠️ Producto no encontrado. <a href="/" style="color:var(--gold);">Volver a la tienda</a>';
+  }
+}
+
+async function loadReviews() {
+  try {
+    const res = await fetch(API + '/api/products/' + PRODUCT_ID + '/reviews');
+    const data = await res.json();
+    const container = document.getElementById('reviewsContainer');
+    if (!data.reviews || data.reviews.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-muted);">No hay reseñas aún. ¡Sé el primero!</p>';
+    } else {
+      container.innerHTML = '<p style="color:var(--text-muted);margin-bottom:1rem;">Media: ' + (data.stats?.average || 0) + ' ★ (' + data.stats?.total + ' reseñas)</p>' +
+        data.reviews.map(r => '<div class="review-card"><div class="stars">' + '★'.repeat(r.rating) + '☆'.repeat(5-r.rating) + '</div><div class="name">' + esc(r.name) + '</div><div class="comment">' + esc(r.comment || '') + '</div></div>').join('');
+    }
+  } catch {}
+  initStars();
+}
+
+function initStars() {
+  const container = document.getElementById('starsInput');
+  container.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const btn = document.createElement('button');
+    btn.textContent = '★';
+    btn.className = i <= selectedRating ? 'active' : '';
+    btn.onclick = () => { selectedRating = i; initStars(); };
+    container.appendChild(btn);
+  }
+}
+
+async function submitReview() {
+  const name = document.getElementById('revName').value.trim();
+  const comment = document.getElementById('revComment').value.trim();
+  const msg = document.getElementById('revMsg');
+  if (!name) { msg.textContent = '⚠️ Pon tu nombre'; msg.style.color = '#E74C3C'; return; }
+  msg.textContent = '⏳ Enviando...'; msg.style.color = 'var(--text-muted)';
+  try {
+    const res = await fetch(API + '/api/products/' + PRODUCT_ID + '/reviews', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name,rating:selectedRating,comment}) });
+    const d = await res.json();
+    if (d.id) { msg.textContent = '✅ Reseña enviada'; msg.style.color = '#2ECC71'; document.getElementById('revName').value=''; document.getElementById('revComment').value=''; loadReviews(); }
+    else { msg.textContent = d.error || 'Error'; msg.style.color = '#E74C3C'; }
+  } catch { msg.textContent = 'Error de conexión'; msg.style.color = '#E74C3C'; }
+}
+
+window.addProductToCart = function() {
+  if (!currentProduct) return;
+  try {
+    const cart = JSON.parse(localStorage.getItem('lumicharge_cart') || '[]');
+    const existing = cart.find(i => i.id === currentProduct.id);
+    if (existing) { existing.quantity++; }
+    else { cart.push({ id:currentProduct.id, name:currentProduct.name, price:currentProduct.price, quantity:1, variant:currentProduct.category||'', image:currentProduct.image||'📦' }); }
+    localStorage.setItem('lumicharge_cart', JSON.stringify(cart));
+    window.dispatchEvent(new CustomEvent('lumicharge-cart-update'));
+    alert('✓ Añadido al carrito');
+  } catch {}
+};
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+loadProduct();
+</script>
+</body>
+</html>
