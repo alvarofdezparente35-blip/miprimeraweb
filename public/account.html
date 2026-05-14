@@ -147,8 +147,8 @@ async function loadAccount() {
         `).join('')
       }
     `;
-  } catch (err: any) {
-    const msg = err.message || 'Error desconocido';
+  } catch (err) {
+    const msg = err?.message || 'Error desconocido';
     content.innerHTML = '<div class="login-msg"><div style="font-size:3rem;margin-bottom:1rem;">⏳</div><h2>Sesión no disponible</h2><p style="margin-top:.5rem;color:var(--text-muted);">' + esc(msg) + '</p><p style="margin-top:1rem;"><button onclick="location.reload()" style="background:var(--gold);color:var(--dark);border:none;padding:.6rem 1.5rem;border-radius:6px;font-size:.9rem;cursor:pointer;font-weight:600;">Reintentar</button> <a href="/login" style="color:var(--gold);margin-left:.5rem;">Iniciar sesión</a></p></div>';
   }
 }
