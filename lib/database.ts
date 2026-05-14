@@ -8,6 +8,10 @@ const PROJECT_ROOT = process.cwd();
 const DB_PATH = process.env.DATABASE_PATH || path.join(PROJECT_ROOT, 'prisma', 'dev.db');
 const BACKUP_DIR = process.env.DB_BACKUP_DIR || path.join(PROJECT_ROOT, 'prisma', 'backups');
 
+// Asegurar que el directorio existe
+const dbDir = path.dirname(DB_PATH);
+if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+
 // ── Conexión principal (lectura + escritura) ────────────────────────
 const db = new Database(DB_PATH);
 
