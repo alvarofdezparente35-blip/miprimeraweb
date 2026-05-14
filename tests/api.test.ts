@@ -5,12 +5,6 @@ import app from '../server.js';
 let csrfToken: string = '';
 let cookies: string[] = [];
 
-beforeAll(async () => {
-  process.env.DATABASE_PATH = process.cwd() + '/prisma/test.db';
-  const { init } = await import('../lib/database.js');
-  init();
-});
-
 describe('API', () => {
   describe('GET /api/health', () => {
     it('returns ok status', async () => {

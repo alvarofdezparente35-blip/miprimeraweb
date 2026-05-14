@@ -21,12 +21,17 @@ function getReadOnlyDb(): Database.Database {
   return dbRead;
 }
 
-// ── Seguridad de la base de datos ────────────────────────────────────
+// ── Optimización de la base de datos ─────────────────────────────────
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 db.pragma('busy_timeout = 5000');
 db.pragma('synchronous = NORMAL');
 db.pragma('cache_size = -20000');
+db.pragma('temp_store = MEMORY');
+db.pragma('mmap_size = 268435456');
+
+// Estadísticas para optimizar queries
+db.prepare('ANALYZE').run();
 
 // Verificar integridad al iniciar
 try {
@@ -269,6 +274,24 @@ export function init(): void {
       created_at TEXT DEFAULT (datetime('now'))
     );
   `);
+  // Índices para consultas rápidas
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+    CREATE INDEX IF NOT EXISTS idx_orders_email ON orders(email);
+    CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created);
+    CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id);
+    CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);
+    CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
+    CREATE INDEX IF NOT EXISTS idx_products_active ON products(active);
+    CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews(product_id);
+    CREATE INDEX IF NOT EXISTS idx_posts_slug ON posts(slug);
+    CREATE INDEX IF NOT EXISTS idx_posts_published ON posts(published);
+    CREATE INDEX IF NOT EXISTS idx_coupons_code ON coupons(code);
+    CREATE INDEX IF NOT EXISTS idx_landing_pages_slug ON landing_pages(slug);
+    CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires ON refresh_tokens(expires_at);
+  `);
+  db.prepare('ANALYZE').run();
+
   logger.info('Base de datos inicializada');
 }
 

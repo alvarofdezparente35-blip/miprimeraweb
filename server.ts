@@ -11,6 +11,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import http from 'node:http';
 import crypto from 'node:crypto';
+import compression from 'compression';
 import Stripe from 'stripe';
 import { Server as SocketIOServer } from 'socket.io';
 import PDFDocument from 'pdfkit';
@@ -94,6 +95,9 @@ app.use(helmet({
   } : false,
 }));
 
+// ── Compression (gzip) ───────────────────────────────────────────────
+app.use(compression({ level: 6, threshold: 256 }));
+
 app.use(cors({
   origin: FRONTEND_URL,
   credentials: true,
@@ -152,8 +156,34 @@ app.use('/api/', (req, res, next) => {
   next();
 });
 
-// ── Static files ─────────────────────────────────────────────────────
-app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'], index: false, redirect: false }));
+// ── Static files con caché ──────────────────────────────────────────
+const oneYear = 365 * 24 * 60 * 60 * 1000;
+const oneHour = 60 * 60 * 1000;
+
+// Assets con hash (inmutables, cache eterno)
+app.use('/assets', express.static(path.join(__dirname, 'public', 'assets'), {
+  maxAge: oneYear,
+  immutable: true,
+}));
+
+// Iconos y manifest (cambio poco frecuente)
+app.use('/icons', express.static(path.join(__dirname, 'public', 'icons'), { maxAge: oneYear }));
+app.get('/manifest.json', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
+});
+
+// HTML y otros archivos (sin caché o corto)
+app.use(express.static(path.join(__dirname, 'public'), {
+  extensions: ['html'],
+  index: false,
+  redirect: false,
+  maxAge: NODE_ENV === 'production' ? oneHour : 0,
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+    if (filePath.endsWith('.css') || filePath.endsWith('.js')) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  },
+}));
 
 // ── Helpers ──────────────────────────────────────────────────────────
 interface TokenPayload {

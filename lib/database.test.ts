@@ -1,21 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import Database from 'better-sqlite3';
-import path from 'node:path';
+import { describe, it, expect } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
 import * as db from './database.js';
-
-const TEST_DB_PATH = path.join(process.cwd(), 'prisma', 'test.db');
-
-beforeAll(() => {
-  process.env.DATABASE_PATH = TEST_DB_PATH;
-  db.init();
-});
-
-afterAll(() => {
-  try { require('fs').unlinkSync(TEST_DB_PATH); } catch {}
-  try { require('fs').unlinkSync(TEST_DB_PATH + '-wal'); } catch {}
-  try { require('fs').unlinkSync(TEST_DB_PATH + '-shm'); } catch {}
-});
 
 describe('database', () => {
   describe('orders', () => {
