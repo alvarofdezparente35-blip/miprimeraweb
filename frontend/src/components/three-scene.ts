@@ -124,7 +124,9 @@ function initCharger(canvas: HTMLCanvasElement, THREE: any): void {
     setLED(parseInt(hex.replace('#', ''), 16));
   };
 
-  setLED(0xC9A84C);
+  // Aplicar color por defecto o el que haya seleccionado el usuario antes de cargar
+  const pendingColor = (window as any)._lumichargeColor;
+  setLED(pendingColor ? parseInt(pendingColor.replace('#', ''), 16) : 0xC9A84C);
 
   // ── Drag ─────────────────────────────────────────────────────────
   let isDragging = false, prevX = 0, dragVel = 0;

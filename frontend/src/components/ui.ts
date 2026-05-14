@@ -114,10 +114,13 @@ export function pickVar(btn: HTMLButtonElement, name: string): void {
   btn.classList.add('active');
   const el = document.getElementById('varName');
   if (el) el.textContent = name;
-  // Cambiar color LED del 3D
+  // Guardar color seleccionado (aunque Three.js no esté listo)
   const hex = COLOR_MAP[name];
-  if (hex && typeof (window as any).setLEDColor === 'function') {
-    (window as any).setLEDColor(hex);
+  if (hex) {
+    (window as any)._lumichargeColor = hex;
+    if (typeof (window as any).setLEDColor === 'function') {
+      (window as any).setLEDColor(hex);
+    }
   }
 }
 
