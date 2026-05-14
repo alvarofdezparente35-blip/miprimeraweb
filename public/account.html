@@ -119,12 +119,16 @@ async function loadAccount() {
 
       <div class="profile-card">
         <h2>📋 Mis datos</h2>
-        <div class="row"><label>Nombre</label><input type="text" id="pfName" value="${esc(me.name)}"></div>
+        <div class="row"><label>Nombre</label><input type="text" id="pfName" value="${esc(me.name)}" disabled></div>
         <div class="row"><label>Email</label><input type="text" value="${esc(me.email)}" disabled style="opacity:.5"></div>
-        <div class="row"><label>Dirección</label><input type="text" id="pfAddr" value="${esc(me.default_addr || '')}" placeholder="Calle, número..."></div>
-        <div class="row"><label>Ciudad</label><input type="text" id="pfCity" value="${esc(me.default_city || '')}" placeholder="Ciudad" style="flex:.5;min-width:100px;">
-        <input type="text" id="pfZip" value="${esc(me.default_zip || '')}" placeholder="CP" style="flex:.3;min-width:80px;"></div>
-        <button onclick="saveProfile()">Guardar cambios</button>
+        <div class="row"><label>Dirección</label><input type="text" id="pfAddr" value="${esc(me.default_addr || '')}" placeholder="Calle, número..." disabled></div>
+        <div class="row"><label>Ciudad</label><input type="text" id="pfCity" value="${esc(me.default_city || '')}" placeholder="Ciudad" style="flex:.5;min-width:100px;" disabled>
+        <input type="text" id="pfZip" value="${esc(me.default_zip || '')}" placeholder="CP" style="flex:.3;min-width:80px;" disabled></div>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <button id="editProfileBtn" onclick="editProfile()">✏️ Editar perfil</button>
+          <button id="saveProfileBtn" onclick="saveProfile()" style="display:none;">💾 Guardar cambios</button>
+          <button id="cancelProfileBtn" onclick="cancelEdit()" style="display:none;background:transparent;color:var(--text-muted);border:0.5px solid rgba(255,255,255,.15);">Cancelar</button>
+        </div>
         <div id="profileMsg" style="font-size:.82rem;margin-top:.5rem;"></div>
       </div>
 
@@ -152,12 +156,24 @@ async function loadAccount() {
   }
 }
 
+function setEditing(on) {
+  ['pfName','pfAddr','pfCity','pfZip'].forEach(id => document.getElementById(id).disabled = !on);
+  document.getElementById('editProfileBtn').style.display = on ? 'none' : 'inline-block';
+  document.getElementById('saveProfileBtn').style.display = on ? 'inline-block' : 'none';
+  document.getElementById('cancelProfileBtn').style.display = on ? 'inline-block' : 'none';
+}
+
+function editProfile() { setEditing(true); }
+
+function cancelEdit() { setEditing(false); document.getElementById('profileMsg').textContent = ''; }
+
 async function saveProfile() {
   const data = { name: document.getElementById('pfName').value, default_addr: document.getElementById('pfAddr').value, default_city: document.getElementById('pfCity').value, default_zip: document.getElementById('pfZip').value };
   try {
     const res = await fetch(API + '/api/customer/profile', { method:'PUT', headers:{'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json'}, body:JSON.stringify(data) });
     const msg = document.getElementById('profileMsg');
-    if (res.ok) { msg.style.color = '#2ECC71'; msg.textContent = '✓ Datos guardados'; } else { msg.style.color = '#E74C3C'; msg.textContent = 'Error al guardar'; }
+    if (res.ok) { setEditing(false); msg.style.color = '#2ECC71'; msg.textContent = '✓ Datos guardados'; }
+    else { msg.style.color = '#E74C3C'; msg.textContent = 'Error al guardar'; }
   } catch { document.getElementById('profileMsg').textContent = 'Error de conexión'; }
 }
 
