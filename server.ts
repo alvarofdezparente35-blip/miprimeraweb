@@ -403,7 +403,7 @@ app.post('/api/customer/login', customerAuthLimiter, async (req, res) => {
 
 app.get('/api/customer/me', authenticateCustomer, (req, res) => {
   const customer = db.getCustomer((req as any).customerId);
-  if (!customer) { res.status(404).json({ error: 'Cliente no encontrado' }); return; }
+  if (!customer) { res.status(401).json({ error: 'CLIENTE_NOT_FOUND', message: 'Tu usuario ya no existe. Es necesario registrarse de nuevo.' }); return; }
   res.json(customer);
 });
 
