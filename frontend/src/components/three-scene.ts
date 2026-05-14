@@ -163,7 +163,7 @@ function initCharger(canvas: HTMLCanvasElement, THREE: any): void {
     if (!visible || document.hidden) return;
     t += 0.016;
 
-    if (!dragging) { vel *= 0.95; group.rotation.y += 0.003 + vel; }
+    if (!dragging) { vel *= 0.95; group.rotation.y += 0.001 + vel; }
     if (!userColor) {
       hue += 0.002;
       const c = new THREE.Color().setHSL(hue % 1, 0.85, 0.5);
