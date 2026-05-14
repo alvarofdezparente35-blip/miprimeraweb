@@ -320,7 +320,7 @@ function initCharger(canvas: HTMLCanvasElement, THREE: any): void {
   });
 
   // ── ANIMATION ────────────────────────────────────────────────────
-  let hue = currentHue;
+  let hue = 0;
   let t = 0;
   let chargingPhase = 0;
 
