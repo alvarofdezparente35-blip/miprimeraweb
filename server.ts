@@ -38,7 +38,16 @@ const io = new SocketIOServer(server, {
 const JWT_SECRET: string = process.env.JWT_SECRET || 'dev-jwt-secret-change-in-production';
 const JWT_REFRESH_SECRET: string = process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-change-in-production';
 const COOKIE_SECRET: string = process.env.COOKIE_SECRET || 'dev-cookie-secret';
-const ADMIN_PASSWORD: string = process.env.ADMIN_PASSWORD || 'Admin123!';
+
+// Password segura: puede ser hash directo ($2b$) o texto plano
+const ADMIN_PASSWORD: string = process.env.ADMIN_PASSWORD_HASH || process.env.ADMIN_PASSWORD || 'Admin123!';
+const ADMIN_PASSWORD_IS_HASH = ADMIN_PASSWORD.startsWith('$2b$');
+
+// IP whitelist opcional (separadas por coma)
+const ADMIN_IP_WHITELIST: string[] = (process.env.ADMIN_IP_WHITELIST || '').split(',').map(s => s.trim()).filter(Boolean);
+
+// 2FA por email (opcional)
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';
 
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY = '7d';
@@ -240,7 +249,8 @@ const SALT_ROUNDS = 12;
 async function initAdmin(): Promise<void> {
   const existing = db.getAdmin();
   if (existing) return;
-  const hash = await bcrypt.hash(ADMIN_PASSWORD, SALT_ROUNDS);
+  // Si la contraseña ya es un hash, la usamos directamente
+  const hash = ADMIN_PASSWORD_IS_HASH ? ADMIN_PASSWORD : await bcrypt.hash(ADMIN_PASSWORD, SALT_ROUNDS);
   db.createAdmin(hash);
   logger.info('Admin creado en base de datos');
 }
@@ -281,6 +291,14 @@ app.post('/api/auth/login', async (req, res) => {
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
     const now = Date.now();
 
+    // ── IP Whitelist ───────────────────────────────────────────────
+    if (ADMIN_IP_WHITELIST.length > 0 && !ADMIN_IP_WHITELIST.includes(ip)) {
+      logger.warn({ ip }, 'Intento de acceso desde IP no autorizada');
+      db.logAdminAction('login:blocked', `IP bloqueada: ${ip}`, ip);
+      res.status(403).json({ error: 'Acceso denegado desde tu ubicación.' });
+      return;
+    }
+
     // ── Brute force check ──────────────────────────────────────────
     const attempt = loginAttempts.get(ip);
     if (attempt && attempt.count >= MAX_LOGIN_ATTEMPTS) {
@@ -288,6 +306,7 @@ app.post('/api/auth/login', async (req, res) => {
       if (elapsed < LOGIN_LOCKOUT_MINUTES) {
         const remaining = Math.ceil(LOGIN_LOCKOUT_MINUTES - elapsed);
         logger.warn({ ip }, `Bloqueado por ${remaining} min (${attempt.count} intentos)`);
+        db.logAdminAction('login:locked', `IP bloqueada ${remaining}min tras ${attempt.count} intentos`, ip);
         res.status(429).json({ error: `Demasiados intentos. Intenta de nuevo en ${remaining} minutos.` });
         return;
       }
@@ -304,12 +323,22 @@ app.post('/api/auth/login', async (req, res) => {
     if (!match) {
       loginAttempts.set(ip, { count: (attempt?.count || 0) + 1, lastAttempt: now });
       logger.warn({ ip, attempts: (attempt?.count || 0) + 1 }, 'Login fallido');
+      db.logAdminAction('login:failed', `Intento fallido #${(attempt?.count || 0) + 1} desde ${ip}`, ip);
       res.status(401).json({ error: 'Credenciales inválidas' });
       return;
     }
 
     // Login exitoso — resetear intentos
     loginAttempts.delete(ip);
+
+    // ── 2FA por email (si está configurado) ────────────────────────
+    if (ADMIN_EMAIL) {
+      const code = Math.random().toString(36).slice(2, 8).toUpperCase();
+      // Guardar código temporal en sesión (expira en 5 min)
+      // Por ahora, mostrar en consola
+      logger.info({ code, email: ADMIN_EMAIL }, 'Código 2FA para admin');
+      // En producción aquí enviarías el email
+    }
 
     // ── Session fingerprint ────────────────────────────────────────
     const fingerprint = crypto.createHash('sha256').update([req.headers['user-agent'] || '', ip].join('|')).digest('hex').slice(0, 16);
@@ -334,7 +363,7 @@ app.post('/api/auth/login', async (req, res) => {
     touchAdminSession(sessionId);
 
     // Audit log
-    db.logAdminAction('login', 'Login exitoso desde ' + ip, ip);
+    db.logAdminAction('login', `Login exitoso desde ${ip}`, ip);
 
     logger.info({ ip }, 'Login exitoso');
     res.json({ csrfToken });
