@@ -87,9 +87,11 @@ export async function claimDiscount(): Promise<void> {
     if (data.ok) {
       localStorage.setItem('lumicharge_nl_subscribed', '1');
       showDiscountBadge();
-      if (code) { code.style.display = 'block'; code.textContent = 'LUMI10'; }
-      if (btn) { btn.textContent = '✓ Código: LUMI10'; btn.style.background = 'var(--success)'; }
-      setTimeout(closeNl, 3500);
+      if (code) { code.style.display = 'none'; }
+      if (btn) { btn.textContent = '✓ Revisa tu email'; btn.style.background = 'var(--success)'; }
+      document.querySelector('.nl-title')!.textContent = '📬 Código enviado';
+      document.querySelector('.nl-sub')!.innerHTML = 'Te hemos enviado el código de descuento a <strong>' + el.value + '</strong>. Revisa tu bandeja de entrada (y la carpeta de spam).';
+      setTimeout(closeNl, 5000);
     } else {
       if (btn) { btn.textContent = data.error || 'Error'; btn.style.background = '#E74C3C'; }
       el.style.borderColor = '#E74C3C';

@@ -29,7 +29,7 @@ export function initEmail(): void {
   }
 }
 
-async function sendEmail(params: SendEmailParams): Promise<void> {
+export async function sendEmail(params: SendEmailParams): Promise<void> {
   if (resend) {
     try {
       const result = await resend.emails.send({

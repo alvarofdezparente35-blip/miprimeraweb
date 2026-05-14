@@ -17,7 +17,7 @@ import PDFDocument from 'pdfkit';
 import logger from './lib/logger.js';
 import * as db from './lib/database.js';
 import { initSentry, getSentryErrorHandler } from './lib/sentry.js';
-import { initEmail, sendOrderConfirmation, sendOrderStatusUpdate } from './lib/email.js';
+import { initEmail, sendEmail, sendOrderConfirmation, sendOrderStatusUpdate } from './lib/email.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -967,9 +967,25 @@ app.post('/api/newsletter/subscribe', (req, res) => {
     const { email, name, source } = req.body;
     if (!email) { res.status(400).json({ error: 'Email requerido' }); return; }
     const result = db.subscribe(email, name, source || 'newsletter');
-    if (result.ok) res.json({ ok: true, message: '¡Gracias por suscribirte!' });
-    else res.status(400).json({ error: result.error });
-  } catch { res.status(500).json({ error: 'Error al suscribir' }); }
+    if (result.ok) {
+      // Enviar email con código de descuento
+      const discountCode = 'LUMI10';
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif;background:#0A0A0F;color:#F0EDE8;padding:2rem;">
+<div style="max-width:500px;margin:0 auto;background:#12121A;border:1px solid rgba(201,168,76,.2);border-radius:12px;padding:2rem;">
+<h1 style="color:#C9A84C;">⚡ LumiCharge</h1>
+<p style="color:#9B9AA8;">¡Gracias por suscribirte, ${name || 'cliente'}!</p>
+<p style="color:#9B9AA8;margin-bottom:1.5rem;">Este es tu código de descuento exclusivo para tu primera compra:</p>
+<div style="background:rgba(201,168,76,.1);border:1px dashed rgba(201,168,76,.4);border-radius:8px;padding:1rem;text-align:center;margin-bottom:1.5rem;">
+  <span style="font-size:1.5rem;font-weight:700;color:#C9A84C;letter-spacing:.2em;">${discountCode}</span>
+</div>
+<p style="color:#9B9AA8;font-size:.85rem;">Válido para un -10% en tu primer pedido en LumiCharge Pro.</p>
+<a href="${FRONTEND_URL}" style="display:inline-block;background:#C9A84C;color:#0A0A0F;padding:.7rem 1.5rem;border-radius:6px;text-decoration:none;font-weight:600;margin-top:.5rem;">Ir a la tienda →</a>
+<p style="color:#555;font-size:.75rem;margin-top:1.5rem;">LumiCharge Technologies S.L. · Si no pediste este código, ignora este email.</p>
+</div></body></html>`;
+      sendEmail({ to: email, subject: '🎉 Tu código de descuento LumiCharge', html }).catch(() => {});
+      res.json({ ok: true, message: 'Código enviado a tu email' });
+    } else res.status(400).json({ error: result.error });
+  } catch (err) { logger.error({ err }, 'Error subscribe'); res.status(500).json({ error: 'Error al suscribir' }); }
 });
 
 app.get('/api/newsletter/subscribers', authenticateToken, (req, res) => {
