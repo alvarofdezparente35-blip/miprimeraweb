@@ -163,8 +163,8 @@
       } else {
         showError(data.error || 'Error ' + res.status + ': no se pudo crear la cuenta.');
       }
-    } catch (e: any) {
-      showError('Error de conexión: ' + (e.message || 'inténtalo de nuevo.'));
+    } catch (e) {
+      showError('Error de conexión: ' + ((e && e.message) || 'inténtalo de nuevo.'));
     } finally {
       btn.classList.remove('loading');
       btn.disabled = false;
