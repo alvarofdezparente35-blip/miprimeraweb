@@ -31,6 +31,4 @@ Plataforma e-commerce para dropshipping de cargadores inalámbricos premium.
 
 ---
 
-© 2026 LumiCharge Technologies S.L. Todos los derechos reservados.
-
-Este software es privado y confidencial. Queda prohibida la reproducción, distribución o modificación total o parcial sin autorización expresa del propietario.
+Proyecto personal. Todos los derechos reservados.
