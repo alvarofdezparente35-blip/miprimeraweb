@@ -153,17 +153,18 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password: pass, name }),
       });
-      const data = await res.json();
+      let data;
+      try { data = await res.json(); } catch { data = { error: 'Error del servidor (' + res.status + ')' }; }
 
       if (data.token) {
         localStorage.setItem('lumicharge_token', data.token);
         localStorage.setItem('lumicharge_user', data.customer?.name || data.customer?.email || '');
         window.location.href = '/';
       } else {
-        showError(data.error || 'Error al crear la cuenta.');
+        showError(data.error || 'Error ' + res.status + ': no se pudo crear la cuenta.');
       }
-    } catch {
-      showError('Error de conexión. Inténtalo de nuevo.');
+    } catch (e: any) {
+      showError('Error de conexión: ' + (e.message || 'inténtalo de nuevo.'));
     } finally {
       btn.classList.remove('loading');
       btn.disabled = false;
