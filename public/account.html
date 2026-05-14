@@ -77,14 +77,15 @@ async function loadAccount() {
       fetch(API + '/api/customer/orders', { headers: { 'Authorization': 'Bearer ' + TOKEN } }),
     ]);
     if (!meRes.ok) {
-      const errData = await meRes.json().catch(() => ({}));
-      if (errData.error === 'CLIENTE_NOT_FOUND') {
+      let errText = '';
+      try { const j = await meRes.json(); errText = j.error || JSON.stringify(j); } catch { errText = await meRes.text().catch(() => 'Error ' + meRes.status); }
+      if (errText === 'CLIENTE_NOT_FOUND') {
         localStorage.removeItem('lumicharge_token');
         localStorage.removeItem('lumicharge_user');
-        content.innerHTML = '<div class="login-msg"><div style="font-size:3rem;margin-bottom:1rem;">🆕</div><h2>Tu cuenta ya no existe</h2><p style="margin-top:.5rem;color:var(--text-muted);">La base de datos fue reiniciada. Crea una cuenta nueva para continuar.</p><p style="margin-top:1rem;"><a href="/register" style="background:var(--gold);color:var(--dark);padding:.6rem 1.5rem;border-radius:6px;font-size:.9rem;font-weight:600;text-decoration:none;">Crear cuenta nueva</a></p></div>';
+        content.innerHTML = '<div class="login-msg"><div style="font-size:3rem;margin-bottom:1rem;">🆕</div><h2>Tu cuenta ya no existe</h2><p style="margin-top:.5rem;color:var(--text-muted);">La base de datos fue reiniciada. Crea una cuenta nueva.</p><p style="margin-top:1rem;"><a href="/register" style="background:var(--gold);color:var(--dark);padding:.6rem 1.5rem;border-radius:6px;font-size:.9rem;font-weight:600;text-decoration:none;">Crear cuenta nueva</a></p></div>';
         return;
       }
-      throw new Error('No autorizado');
+      throw new Error(errText);
     }
     const [me, orders] = await Promise.all([meRes.json(), ordersRes.json()]);
 
@@ -146,8 +147,9 @@ async function loadAccount() {
         `).join('')
       }
     `;
-  } catch (err) {
-    content.innerHTML = '<div class="login-msg"><div style="font-size:3rem;margin-bottom:1rem;">⏳</div><h2>Sesión no disponible</h2><p style="margin-top:.5rem;color:var(--text-muted);">No pudimos cargar tus datos. Puede ser un problema de conexión o que tu sesión haya expirado.</p><p style="margin-top:1rem;"><button onclick="location.reload()" style="background:var(--gold);color:var(--dark);border:none;padding:.6rem 1.5rem;border-radius:6px;font-size:.9rem;cursor:pointer;font-weight:600;">Reintentar</button> <a href="/login" style="color:var(--gold);margin-left:.5rem;">Iniciar sesión</a></p></div>';
+  } catch (err: any) {
+    const msg = err.message || 'Error desconocido';
+    content.innerHTML = '<div class="login-msg"><div style="font-size:3rem;margin-bottom:1rem;">⏳</div><h2>Sesión no disponible</h2><p style="margin-top:.5rem;color:var(--text-muted);">' + esc(msg) + '</p><p style="margin-top:1rem;"><button onclick="location.reload()" style="background:var(--gold);color:var(--dark);border:none;padding:.6rem 1.5rem;border-radius:6px;font-size:.9rem;cursor:pointer;font-weight:600;">Reintentar</button> <a href="/login" style="color:var(--gold);margin-left:.5rem;">Iniciar sesión</a></p></div>';
   }
 }
 
