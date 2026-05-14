@@ -771,3 +771,6 @@ export function logAdminAction(action: string, detail = '', ip = ''): void {
 export function getAuditLog(limit = 50): { id: string; action: string; detail: string; ip: string; created: string }[] {
   return db.prepare('SELECT * FROM admin_audit ORDER BY created DESC LIMIT ?').all(limit) as any[];
 }
+
+// Inicializar BD automáticamente al importar el módulo
+init();

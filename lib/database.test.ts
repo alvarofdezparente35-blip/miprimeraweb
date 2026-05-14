@@ -1,8 +1,6 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
 import * as db from './database.js';
-
-beforeAll(() => { db.init(); });
 
 describe('database', () => {
   describe('orders', () => {
