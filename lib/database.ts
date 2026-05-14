@@ -1,14 +1,101 @@
 import Database from 'better-sqlite3';
 import path from 'node:path';
+import fs from 'node:fs';
 import { v4 as uuidv4 } from 'uuid';
 import logger from './logger.js';
 
 const PROJECT_ROOT = process.cwd();
 const DB_PATH = process.env.DATABASE_PATH || path.join(PROJECT_ROOT, 'prisma', 'dev.db');
+const BACKUP_DIR = process.env.DB_BACKUP_DIR || path.join(PROJECT_ROOT, 'prisma', 'backups');
+
+// ── Conexión principal (lectura + escritura) ────────────────────────
 const db = new Database(DB_PATH);
 
+// ── Conexión de solo lectura para endpoints públicos ────────────────
+let dbRead: Database.Database | null = null;
+function getReadOnlyDb(): Database.Database {
+  if (!dbRead) {
+    dbRead = new Database(DB_PATH, { readonly: true });
+    dbRead.pragma('journal_mode = WAL');
+  }
+  return dbRead;
+}
+
+// ── Seguridad de la base de datos ────────────────────────────────────
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
+db.pragma('busy_timeout = 5000');
+db.pragma('synchronous = NORMAL');
+db.pragma('cache_size = -20000');
+
+// Verificar integridad al iniciar
+try {
+  const integrityRow = db.prepare('PRAGMA integrity_check').get() as { integrity_check: string };
+  if (integrityRow?.integrity_check !== 'ok') {
+    logger.error({ result: integrityRow }, '⚠️ INTEGRIDAD DE BD COMPROMETIDA');
+  } else {
+    logger.info('✅ Integridad de base de datos verificada');
+  }
+} catch (err) {
+  logger.error({ err }, 'Error al verificar integridad de BD');
+}
+
+// ── Auto-backup diario ──────────────────────────────────────────────
+let lastBackupDate = '';
+
+function autoBackup(): void {
+  const today = new Date().toISOString().slice(0, 10);
+  if (lastBackupDate === today) return;
+  lastBackupDate = today;
+
+  try {
+    if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    const backupPath = path.join(BACKUP_DIR, `lumicharge-${today}.db`);
+    if (!fs.existsSync(backupPath)) {
+      db.backup(backupPath);
+      // Keep only last 30 backups
+      const files = fs.readdirSync(BACKUP_DIR).filter(f => f.endsWith('.db')).sort();
+      while (files.length > 30) {
+        const old = files.shift()!;
+        fs.unlinkSync(path.join(BACKUP_DIR, old));
+      }
+      logger.info({ backup: backupPath }, '✅ Backup automático de BD creado');
+    }
+  } catch (err) {
+    logger.error({ err }, 'Error en auto-backup');
+  }
+}
+
+// Auto-backup cada hora
+setInterval(autoBackup, 3600000);
+setTimeout(autoBackup, 5000);
+
+export function restoreFromBackup(date: string): boolean {
+  const backupPath = path.join(BACKUP_DIR, `lumicharge-${date}.db`);
+  if (!fs.existsSync(backupPath)) return false;
+  try {
+    db.close();
+    if (dbRead) { dbRead.close(); dbRead = null; }
+    fs.copyFileSync(backupPath, DB_PATH);
+    logger.info({ backup: backupPath }, '✅ Base de datos restaurada desde backup');
+    return true;
+  } catch (err) {
+    logger.error({ err }, 'Error al restaurar backup');
+    return false;
+  }
+}
+
+// ── Sanitizer para datos de salida ──────────────────────────────────
+export function sanitizeOrder(order: Order): Order & { email_masked: string } {
+  return {
+    ...order,
+    email_masked: order.email.slice(0, 3) + '***@' + (order.email.split('@')[1] || '***'),
+  };
+}
+
+export function sanitizeOrders(orders: Order[]): ReturnType<typeof sanitizeOrder>[] {
+  return orders.map(sanitizeOrder);
+}
 
 export interface Order {
   id: string;

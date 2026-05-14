@@ -1008,6 +1008,7 @@ app.post('/api/tracking', (req, res) => {
       total: order.total,
       status: order.status,
       created: order.created,
+      // Email no se expone al público
     });
   } catch { res.status(500).json({ error: 'Error al buscar pedido' }); }
 });
