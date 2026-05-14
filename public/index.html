@@ -834,7 +834,26 @@
     <div class="search-results" id="searchResults"></div>
   </div>
 </div>
-<script>(function(){var u=localStorage.getItem('lumicharge_user'),e=document.getElementById('userName');if(e&&u)e.textContent=u.slice(0,10);})();</script>
+<script>(function(){
+  var u=localStorage.getItem('lumicharge_user'),e=document.getElementById('userName');
+  var token=localStorage.getItem('lumicharge_token');
+  // Inactivity check: 1 hora sin actividad = cerrar sesión
+  if(token){
+    var last=localStorage.getItem('lumicharge_last_active');
+    if(last && Date.now()-Number(last)>3600000){
+      localStorage.removeItem('lumicharge_token');
+      localStorage.removeItem('lumicharge_user');
+      localStorage.removeItem('lumicharge_last_active');
+      token=null;u=null;
+    }else{
+      localStorage.setItem('lumicharge_last_active',Date.now());
+    }
+  }
+  if(e&&u&&token)e.textContent=u.slice(0,10);
+  // Update last active on any interaction
+  function touch(){if(localStorage.getItem('lumicharge_token'))localStorage.setItem('lumicharge_last_active',Date.now());}
+  document.addEventListener('click',touch);document.addEventListener('scroll',touch);document.addEventListener('keydown',touch);
+})();</script>
 </body>
 </html>
 
