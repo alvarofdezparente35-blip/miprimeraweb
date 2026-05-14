@@ -72,22 +72,21 @@ if (!TOKEN) {
 
 async function loadAccount() {
   try {
-    const [meRes, ordersRes] = await Promise.all([
-      fetch(API + '/api/customer/me', { headers: { 'Authorization': 'Bearer ' + TOKEN } }),
-      fetch(API + '/api/customer/orders', { headers: { 'Authorization': 'Bearer ' + TOKEN } }),
-    ]);
-    if (!meRes.ok) {
-      let errText = '';
-      try { const j = await meRes.json(); errText = j.error || JSON.stringify(j); } catch { errText = await meRes.text().catch(() => 'Error ' + meRes.status); }
-      if (errText === 'CLIENTE_NOT_FOUND') {
+    const meRes = await fetch(API + '/api/customer/me', { headers: { 'Authorization': 'Bearer ' + TOKEN } });
+    const body = await meRes.text();
+    let me;
+    try { me = JSON.parse(body); } catch { throw new Error('El servidor devolvió HTML en vez de JSON. Recarga la página.'); }
+    if (!meRes.ok || me.error) {
+      if (me.error === 'CLIENTE_NOT_FOUND') {
         localStorage.removeItem('lumicharge_token');
         localStorage.removeItem('lumicharge_user');
         content.innerHTML = '<div class="login-msg"><div style="font-size:3rem;margin-bottom:1rem;">🆕</div><h2>Tu cuenta ya no existe</h2><p style="margin-top:.5rem;color:var(--text-muted);">La base de datos fue reiniciada. Crea una cuenta nueva.</p><p style="margin-top:1rem;"><a href="/register" style="background:var(--gold);color:var(--dark);padding:.6rem 1.5rem;border-radius:6px;font-size:.9rem;font-weight:600;text-decoration:none;">Crear cuenta nueva</a></p></div>';
         return;
       }
-      throw new Error(errText);
+      throw new Error(me.error || 'Error del servidor');
     }
-    const [me, orders] = await Promise.all([meRes.json(), ordersRes.json()]);
+    const ordersRes = await fetch(API + '/api/customer/orders', { headers: { 'Authorization': 'Bearer ' + TOKEN } });
+    const orders = ordersRes.ok ? await ordersRes.json() : [];
 
     // Cart from localStorage
     let cartHtml = '';
