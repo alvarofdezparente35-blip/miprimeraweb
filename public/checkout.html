@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pago seguro — LumiCharge Pro</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&display=swap"></noscript>
+<style>
+  * { box-sizing: border-box; }
+  body { padding-top: 60px; min-height: 100vh; background: radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.02) 0%, transparent 70%); }
+  .nav-bar { display:flex; align-items:center; justify-content:space-between; padding:.85rem 5%; background:rgba(10,10,15,.95); backdrop-filter:blur(20px); border-bottom:0.5px solid var(--border); position:fixed; top:0; left:0; right:0; z-index:999; }
+  .nav-bar a { color:var(--gold); text-decoration:none; font-family:'Arimo',sans-serif; font-size:1.2rem; font-weight:700; letter-spacing:.15em; }
+  .nav-bar .back { color:var(--text-muted); font-size:.82rem; letter-spacing:.08em; text-transform:uppercase; }
+  .nav-bar .back:hover { color:var(--gold); }
+  .checkout-wrap { max-width: 70rem; margin: 0 auto; padding: 2rem 5% 4rem; }
+  .checkout-header { text-align: center; margin-bottom: 2rem; }
+  .checkout-header h1 { font-size: clamp(1.8rem, 3vw, 2.5rem); }
+  .checkout-header p { color: var(--text-muted); font-size: .9rem; margin-top: .5rem; }
+  .checkout-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 2.5rem; align-items: start; }
+  .checkout-form { background: var(--dark-3); border: 0.5px solid var(--border); border-radius: 12px; padding: 2rem; }
+  .checkout-form h2 { font-size: 1rem; margin-bottom: 1.2rem; color: var(--gold); }
+  .form-group { margin-bottom: 1rem; }
+  .form-group label { display: block; font-size: .78rem; color: var(--text-muted); margin-bottom: .3rem; text-transform: uppercase; letter-spacing: .05em; }
+  .form-group input { width: 100%; background: var(--dark-4); border: 1px solid rgba(255,255,255,.08); border-radius: 8px; padding: .8rem 1rem; color: var(--text); font-size: .9rem; font-family: 'Arimo', sans-serif; transition: border-color .2s; }
+  .form-group input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,.08); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .payment-icons { display: flex; gap: .5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .payment-icons span { background: var(--dark-4); border: 0.5px solid var(--border); border-radius: 6px; padding: .35rem .7rem; font-size: .75rem; color: var(--text-muted); }
+  #card-element { background: var(--dark-4); border: 1px solid rgba(255,255,255,.08); border-radius: 8px; padding: .8rem 1rem; }
+  #card-errors { color: #E74C3C; font-size: .8rem; margin-top: .5rem; display: none; }
+  .checkout-summary { background: var(--dark-3); border: 0.5px solid var(--border); border-radius: 12px; padding: 1.5rem; position: sticky; top: 5rem; }
+  .checkout-summary h2 { font-size: .85rem; text-transform: uppercase; letter-spacing: .1em; color: var(--text-muted); margin-bottom: 1rem; font-weight: 400; }
+  .summary-row { display: flex; justify-content: space-between; margin-bottom: .6rem; font-size: .88rem; }
+  .summary-row .label { color: var(--text-muted); }
+  .summary-row .value { color: var(--text); }
+  .summary-total { display: flex; justify-content: space-between; padding-top: .8rem; border-top: 1px solid rgba(255,255,255,.06); margin-top: .5rem; font-size: 1.1rem; font-weight: 700; }
+  .summary-total .value { color: var(--gold); }
+  .submit-btn { width: 100%; background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: var(--dark); border: none; padding: 1rem; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 1rem; transition: transform .2s, box-shadow .2s; }
+  .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(201,168,76,.25); }
+  .submit-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
+  .security-note { text-align: center; font-size: .75rem; color: var(--text-muted); margin-top: .8rem; }
+  .cart-items-mini { margin-bottom: 1rem; }
+  .cart-item-mini { display: flex; align-items: center; gap: .7rem; padding: .5rem 0; border-bottom: 0.5px solid rgba(255,255,255,.04); }
+  .cart-item-mini:last-child { border: none; }
+  .cart-item-mini .ci-img { font-size: 1.3rem; width: 2rem; text-align: center; }
+  .cart-item-mini .ci-name { flex: 1; font-size: .85rem; }
+  .cart-item-mini .ci-qty { color: var(--text-muted); font-size: .78rem; }
+  .cart-item-mini .ci-total { color: var(--gold); font-weight: 600; font-size: .85rem; }
+  .empty-cart-msg { text-align: center; padding: 3rem; color: var(--text-muted); }
+  .empty-cart-msg a { color: var(--gold); }
+  @media (max-width: 768px) { .checkout-grid { grid-template-columns: 1fr; } }
+</style>
+  <link rel="stylesheet" crossorigin href="/assets/style-bsa7L4cv.css">
+</head>
+<body>
+<nav class="nav-bar"><a href="/">LUMICHARGE</a><a href="/carrito" class="back">← Volver al carrito</a></nav>
+<div class="checkout-wrap">
+  <div class="checkout-header">
+    <h1>🔒 Pago seguro</h1>
+    <p>Completa tus datos para finalizar la compra. Pago 100% protegido con Stripe.</p>
+  </div>
+  <div id="checkoutContent">
+    <div class="empty-cart-msg" id="emptyCart">
+      <div style="font-size:3rem;margin-bottom:1rem;">🛒</div>
+      <h2>Tu carrito está vacío</h2>
+      <p style="margin-top:.5rem;"><a href="/">Añade productos desde la tienda</a></p>
+    </div>
+    <div id="checkoutGrid" style="display:none;">
+      <div class="checkout-grid">
+        <div class="checkout-form">
+          <h2>📋 Datos de envío</h2>
+          <div class="form-row">
+            <div class="form-group"><label>Nombre</label><input type="text" id="chName" placeholder="Tu nombre"></div>
+            <div class="form-group"><label>Apellidos</label><input type="text" id="chSurname" placeholder="Tus apellidos"></div>
+          </div>
+          <div class="form-group"><label>Email</label><input type="email" id="chEmail" placeholder="tu@email.com"></div>
+          <div class="form-group"><label>Dirección</label><input type="text" id="chAddress" placeholder="Calle, número, piso"></div>
+          <div class="form-row">
+            <div class="form-group"><label>Ciudad</label><input type="text" id="chCity" placeholder="Ciudad"></div>
+            <div class="form-group"><label>Código postal</label><input type="text" id="chZip" placeholder="28000"></div>
+          </div>
+          <h2 style="margin-top:1.5rem;">💳 Pago con tarjeta</h2>
+          <div class="payment-icons">
+            <span>💳 Visa</span><span>💳 Mastercard</span><span>🅿️ PayPal</span><span>🍎 Apple Pay</span><span>G Pay</span>
+          </div>
+          <div class="form-group">
+            <label>Datos de la tarjeta</label>
+            <div id="card-element"></div>
+            <div id="card-errors"></div>
+            <p style="font-size:.72rem;color:var(--text-muted);margin-top:.5rem;opacity:.7;">🔐 Tus datos se envían directamente a Stripe mediante iframes seguros.</p>
+          </div>
+          <button class="submit-btn" id="payBtn" onclick="processPayment()">🔒 Pagar ahora</button>
+          <p class="security-note">🔐 Pago procesado por Stripe. Tus datos están encriptados con SSL 256-bit.</p>
+        </div>
+        <div class="checkout-summary">
+          <h2>Resumen del pedido</h2>
+          <div class="cart-items-mini" id="miniCart"></div>
+          <div class="summary-row"><span class="label">Subtotal</span><span class="value" id="coSubtotal">€0,00</span></div>
+          <div class="summary-row"><span class="label">Envío</span><span class="value" id="coShipping">€0,00</span></div>
+          <div class="summary-row"><span class="label">IVA (21%)</span><span class="value" id="coIva">€0,00</span></div>
+          <div class="summary-total"><span>Total</span><span class="value" id="coTotal">€0,00</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+const API = window.location.origin;
+
+function loadCheckout() {
+  try {
+    const cart = JSON.parse(localStorage.getItem('lumicharge_cart') || '[]');
+    if (cart.length === 0) {
+      document.getElementById('emptyCart').style.display = 'block';
+      document.getElementById('checkoutGrid').style.display = 'none';
+      return;
+    }
+    document.getElementById('emptyCart').style.display = 'none';
+    document.getElementById('checkoutGrid').style.display = 'block';
+
+    const mini = document.getElementById('miniCart');
+    let sub = 0;
+    mini.innerHTML = cart.map(i => {
+      sub += i.price * i.quantity;
+      return `<div class="cart-item-mini"><span class="ci-img">${i.image||'📦'}</span><span class="ci-name">${esc(i.name)}</span><span class="ci-qty">×${i.quantity}</span><span class="ci-total">€${(i.price*i.quantity).toFixed(2).replace('.',',')}</span></div>`;
+    }).join('');
+
+    const shipping = 2;
+    const iva = sub * 0.21;
+    const total = sub + shipping + iva;
+
+    document.getElementById('coSubtotal').textContent = '€' + sub.toFixed(2).replace('.',',');
+    document.getElementById('coShipping').textContent = '€' + shipping.toFixed(2).replace('.',',');
+    document.getElementById('coIva').textContent = '€' + iva.toFixed(2).replace('.',',');
+    document.getElementById('coTotal').textContent = '€' + total.toFixed(2).replace('.',',');
+    document.getElementById('payBtn').textContent = '🔒 Pagar €' + total.toFixed(2).replace('.',',');
+  } catch {}
+}
+
+async function processPayment() {
+  const name = document.getElementById('chName').value.trim();
+  const email = document.getElementById('chEmail').value.trim();
+  const address = document.getElementById('chAddress').value.trim();
+  if (!name || !email || !address) { alert('Completa los campos obligatorios'); return; }
+
+  const btn = document.getElementById('payBtn');
+  btn.disabled = true; btn.textContent = '⏳ Procesando...';
+
+  try {
+    const cart = JSON.parse(localStorage.getItem('lumicharge_cart') || '[]');
+    const total = cart.reduce((s,i) => s + i.price * i.quantity, 0) + 2;
+
+    const orderRes = await fetch(API + '/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, address, quantity: cart.length, total }),
+    });
+    if (!orderRes.ok) throw new Error('Error al crear pedido');
+    const order = await orderRes.json();
+
+    const payRes = await fetch(API + '/api/checkout/create-payment-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: total, currency: 'eur', orderId: order.id }),
+    });
+    const payData = await payRes.json();
+
+    if (payData.mode === 'demo') {
+      localStorage.removeItem('lumicharge_cart');
+      window.dispatchEvent(new CustomEvent('lumicharge-cart-update'));
+      alert('✅ Pedido confirmado (modo demo). Recibirás un email de confirmación.');
+      window.location.href = '/account';
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
+    btn.disabled = false; btn.textContent = '🔒 Pagar ahora';
+  }
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+document.addEventListener('DOMContentLoaded', loadCheckout);
+</script>
+</body>
+</html>

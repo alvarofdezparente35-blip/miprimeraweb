@@ -1,7 +1,15 @@
 import './style.css';
-import { initCartPageUI, getCartCount, getCartSubtotal, getCartTotal } from './components/cart.js';
+import { initCartPageUI, getCartCount, getCartSubtotal } from './components/cart.js';
 
 let appliedCoupon: { code: string; discount: number; type: string } | null = null;
+
+const SHIPPING: Record<string, number> = { espana: 2, europa: 4, internacional: 5 };
+const IVA_RATE = 0.21;
+
+function getShippingCost(): number {
+  const zone = (document.getElementById('shippingZone') as HTMLSelectElement)?.value || 'espana';
+  return SHIPPING[zone] || 2;
+}
 
 function updateCartLabel(): void {
   const el = document.getElementById('cartCountLabel');
@@ -12,25 +20,38 @@ function updateCartLabel(): void {
     : `Tienes ${count} producto${count > 1 ? 's' : ''} en tu carrito.`;
 }
 
+function fmt(n: number): string {
+  return '€' + n.toFixed(2).replace('.', ',');
+}
+
 function updateTotals(): void {
   const subtotalEl = document.getElementById('cartSubtotal');
+  const shippingEl = document.getElementById('cartShipping');
+  const ivaEl = document.getElementById('cartIva');
   const totalEl = document.getElementById('cartTotal');
   if (!subtotalEl || !totalEl) return;
 
   const sub = getCartSubtotal();
-  const total = getCartTotal();
-  subtotalEl.textContent = '€' + sub.toFixed(2).replace('.', ',');
+  const shipping = getShippingCost();
+  const iva = sub * IVA_RATE;
+  let total = sub + shipping + iva;
+
+  subtotalEl.textContent = fmt(sub);
+  if (shippingEl) shippingEl.textContent = fmt(shipping);
 
   if (appliedCoupon) {
     const discount = appliedCoupon.type === 'percentage'
       ? total * (appliedCoupon.discount / 100)
       : appliedCoupon.discount;
-    const finalTotal = Math.max(0, total - discount);
-    totalEl.innerHTML = `<span style="text-decoration:line-through;color:#555;font-size:.9rem;">€${total.toFixed(2).replace('.',',')}</span> €${finalTotal.toFixed(2).replace('.',',')}`;
+    total = Math.max(0, total - discount);
+    totalEl.innerHTML = `<span style="text-decoration:line-through;color:#555;font-size:.9rem;">${fmt(sub + shipping + iva)}</span> ${fmt(total)}`;
   } else {
-    totalEl.textContent = '€' + total.toFixed(2).replace('.', ',');
+    totalEl.textContent = fmt(total);
   }
+  if (ivaEl) ivaEl.textContent = fmt(iva);
 }
+
+(window as any).updateShipping = updateTotals;
 
 (window as any).applyCoupon = async function () {
   const input = document.getElementById('couponInput') as HTMLInputElement;
@@ -72,5 +93,6 @@ function updateTotals(): void {
 document.addEventListener('DOMContentLoaded', () => {
   initCartPageUI();
   updateCartLabel();
+  updateTotals();
   window.addEventListener('lumicharge-cart-update', () => { updateCartLabel(); updateTotals(); });
 });
