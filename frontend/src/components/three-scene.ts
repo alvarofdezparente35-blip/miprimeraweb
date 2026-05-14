@@ -1,4 +1,4 @@
-// ── Three.js 3D Product Viewer (v3 — estudio profesional) ────────────
+// ── Three.js 3D Product Viewer ──────────────────────────────────────
 
 let sceneReady = false;
 
@@ -29,7 +29,7 @@ function bootThree(canvas: HTMLCanvasElement): void {
     const THREE = (window as any).THREE;
     if (THREE) initCharger(canvas, THREE);
   };
-  script.onerror = () => { canvas.parentElement!.style.display = 'none'; };
+  script.onerror = () => { if (canvas.parentElement) canvas.parentElement.style.display = 'none'; };
   document.head.appendChild(script);
 }
 
@@ -39,335 +39,126 @@ function initCharger(canvas: HTMLCanvasElement, THREE: any): void {
   let dpr = Math.min(window.devicePixelRatio || 1, 2);
   if (navigator.hardwareConcurrency <= 4 || (navigator as any).deviceMemory <= 2) dpr = 1;
 
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setSize(W, H);
   renderer.setPixelRatio(dpr);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  renderer.shadowMap.bias = 0.0005;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0;
-  renderer.setClearColor(0x0A0A0F, 1);
+  renderer.toneMappingExposure = 1.4;
+  renderer.setClearColor(0x000000, 0);
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(28, W / H, 0.1, 100);
-  camera.position.set(0, 3.5, 8);
+  const camera = new THREE.PerspectiveCamera(32, W / H, 0.1, 100);
+  camera.position.set(0, 4.2, 7);
   camera.lookAt(0, 0.3, 0);
 
   const group = new THREE.Group();
   scene.add(group);
 
-  // ── BACKGROUND ────────────────────────────────────────────────────
-  scene.background = new THREE.Color(0x0A0A0F);
-
-  // ── FLOATING PARTICLES ───────────────────────────────────────────
-  const particleCount = 60;
-  const particleGeo = new THREE.BufferGeometry();
-  const positions = new Float32Array(particleCount * 3);
-  const sizes = new Float32Array(particleCount);
-  for (let i = 0; i < particleCount; i++) {
-    const theta = Math.random() * Math.PI * 2;
-    const r = 3 + Math.random() * 4;
-    positions[i * 3] = Math.cos(theta) * r;
-    positions[i * 3 + 1] = (Math.random() - 0.5) * 5;
-    positions[i * 3 + 2] = Math.sin(theta) * r - 2;
-    sizes[i] = 0.02 + Math.random() * 0.04;
-  }
-  particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  particleGeo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-
-  const particleMat = new THREE.PointsMaterial({
-    color: 0xC9A84C, size: 0.04, transparent: true, opacity: 0.3,
-    blending: THREE.AdditiveBlending, depthWrite: false,
-    sizeAttenuation: true,
-  });
-  const particles = new THREE.Points(particleGeo, particleMat);
-  particles.position.y = 0.3;
-  scene.add(particles);
-
-  // ── PAD BODY ──────────────────────────────────────────────────────
-  const pad = new THREE.Mesh(
-    new THREE.CylinderGeometry(2.1, 2.18, 0.3, 64),
-    new THREE.MeshPhysicalMaterial({
-      color: 0x1c1c2a, metalness: 0.95, roughness: 0.15,
-      clearcoat: 0.3, clearcoatRoughness: 0.2,
-    })
-  );
-  pad.receiveShadow = pad.castShadow = true;
-  group.add(pad);
-
-  // Edge bevel
-  const bevel = new THREE.Mesh(
-    new THREE.TorusGeometry(2.14, 0.035, 6, 64),
-    new THREE.MeshPhysicalMaterial({ color: 0x9999aa, metalness: 1, roughness: 0.05 })
-  );
-  bevel.rotation.x = Math.PI / 2;
-  bevel.position.y = -0.13;
-  group.add(bevel);
+  // Charger body
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1c1c2a, metalness: 0.92, roughness: 0.18 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.18, 0.28, 80), bodyMat);
+  body.receiveShadow = body.castShadow = true;
+  group.add(body);
 
   // Top surface
-  const top = new THREE.Mesh(
-    new THREE.CylinderGeometry(2.05, 2.05, 0.02, 64),
-    new THREE.MeshPhysicalMaterial({ color: 0x14141f, metalness: 0.6, roughness: 0.3 })
-  );
+  const topMat = new THREE.MeshStandardMaterial({ color: 0x14141f, metalness: 0.6, roughness: 0.35 });
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(2.05, 2.05, 0.02, 80), topMat);
   top.position.y = 0.15;
   group.add(top);
 
-  // Charging zone
-  const zone = new THREE.Mesh(
-    new THREE.RingGeometry(0.6, 0.95, 48),
-    new THREE.MeshPhysicalMaterial({
-      color: 0x1a1a30, metalness: 0.4, roughness: 0.6,
-      side: THREE.DoubleSide, transparent: true, opacity: 0.7,
-    })
-  );
-  zone.rotation.x = -Math.PI / 2;
-  zone.position.y = 0.162;
-  group.add(zone);
+  // LED ring
+  const ledMat = new THREE.MeshStandardMaterial({ color: 0xC9A84C, emissive: 0xC9A84C, emissiveIntensity: 3, roughness: 0.05, transparent: true, opacity: 0.95 });
+  const ledRing = new THREE.Mesh(new THREE.TorusGeometry(1.72, 0.07, 16, 120), ledMat);
+  ledRing.rotation.x = Math.PI / 2;
+  ledRing.position.y = 0.155;
+  group.add(ledRing);
 
-  // Wireless arcs
-  const arcs: any[] = [];
-  [0.35, 0.55, 0.75].forEach((r, i) => {
-    const arc = new THREE.Mesh(
-      new THREE.TorusGeometry(r, 0.015, 6, 48, Math.PI * 1.3),
-      new THREE.MeshPhysicalMaterial({
-        color: 0xC9A84C, emissive: 0xC9A84C, emissiveIntensity: 0.5,
-        roughness: 0.2, metalness: 0.3, transparent: true, opacity: 0.7 + i * 0.1,
-      })
-    );
-    arc.rotation.x = Math.PI / 2;
-    arc.rotation.z = -Math.PI * 0.65 - i * 0.1;
-    arc.position.y = 0.168;
-    (arc as any)._baseOpacity = 0.7 + i * 0.1;
-    group.add(arc);
-    arcs.push(arc);
-  });
-
-  // Center dot
-  const dot = new THREE.Mesh(
-    new THREE.SphereGeometry(0.06, 16, 16),
-    new THREE.MeshPhysicalMaterial({ color: 0xC9A84C, emissive: 0xC9A84C, emissiveIntensity: 1, metalness: 0.5, roughness: 0.1 })
-  );
-  dot.position.set(0, 0.17, 0.18);
-  group.add(dot);
-
-  // ── LED RING ─────────────────────────────────────────────────────
-  const ledMat = new THREE.MeshPhysicalMaterial({
-    color: 0xC9A84C, emissive: 0xC9A84C, emissiveIntensity: 2.5,
-    roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.95,
-  });
-  const ledRingMesh = new THREE.Mesh(new THREE.TorusGeometry(1.72, 0.06, 12, 80), ledMat);
-  ledRingMesh.rotation.x = Math.PI / 2;
-  ledRingMesh.position.y = 0.155;
-  group.add(ledRingMesh);
-
-  // Glow
-  const glowMat = new THREE.MeshPhysicalMaterial({
-    color: 0xC9A84C, emissive: 0xC9A84C, emissiveIntensity: 1.2,
-    transparent: true, opacity: 0.12, depthWrite: false, roughness: 0.3,
-  });
-  const glowRing = new THREE.Mesh(new THREE.TorusGeometry(1.72, 0.2, 8, 60), glowMat);
-  glowRing.rotation.x = Math.PI / 2;
-  glowRing.position.y = 0.155;
-  group.add(glowRing);
-
-  // ── COLOR CONTROL (desde UI) ─────────────────────────────────────
-  let manualColor: string | null = null;
-
-  function applyLEDColor(colorHex: number): void {
-    const col = new THREE.Color(colorHex);
-    ledMat.color.set(col);
-    ledMat.emissive.set(col);
-    glowMat.color.set(col);
-    glowMat.emissive.set(col);
-    ledPoint.color.set(col);
-    // Update arcs too
-    arcs.forEach((arc: any) => {
-      arc.material.color.set(col);
-      arc.material.emissive.set(col);
-    });
-  }
-
-  // Expose for UI buttons
-  (window as any).setLEDColor = (hex: string) => {
-    manualColor = hex;
-    applyLEDColor(parseInt(hex.replace('#', ''), 16));
-  };
-  (window as any).resetLEDColor = () => { manualColor = null; };
-
-  // Apply default Dorado
-  applyLEDColor(0xC9A84C);
-
-  // ── PHONE ────────────────────────────────────────────────────────
+  // Phone
   const phoneGroup = new THREE.Group();
   phoneGroup.position.set(0.15, 0.17, 0);
-  phoneGroup.rotation.y = 0.2;
+  phoneGroup.rotation.y = 0.25;
   group.add(phoneGroup);
 
-  phoneGroup.add(new THREE.Mesh(
-    new THREE.BoxGeometry(0.78, 0.06, 1.68),
-    new THREE.MeshPhysicalMaterial({ color: 0x0a0a12, metalness: 0.9, roughness: 0.15 })
-  ));
-  phoneGroup.add(new THREE.Mesh(
-    new THREE.BoxGeometry(0.80, 0.055, 1.70),
-    new THREE.MeshPhysicalMaterial({ color: 0x666677, metalness: 1, roughness: 0.05 })
-  ));
+  phoneGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.07, 1.72), new THREE.MeshStandardMaterial({ color: 0x0a0a12, metalness: 0.9, roughness: 0.12 })));
+  phoneGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.065, 1.74), new THREE.MeshStandardMaterial({ color: 0x555566, metalness: 1, roughness: 0.05 })));
 
-  const screenMat = new THREE.MeshPhysicalMaterial({
-    color: 0x0d1525, emissive: 0x1a3060, emissiveIntensity: 0.8,
-    roughness: 0.05, metalness: 0.1,
-  });
-  const screen = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.03, 1.50), screenMat);
-  screen.position.y = 0.045;
+  const screenMat = new THREE.MeshStandardMaterial({ color: 0x0d1525, emissive: 0x1a3060, emissiveIntensity: 0.8, roughness: 0.1 });
+  const screen = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.04, 1.55), screenMat);
+  screen.position.y = 0.055;
   phoneGroup.add(screen);
 
-  const batt = new THREE.Mesh(
-    new THREE.BoxGeometry(0.28, 0.008, 0.08),
-    new THREE.MeshPhysicalMaterial({ color: 0x2ECC71, emissive: 0x2ECC71, emissiveIntensity: 1 })
-  );
-  batt.position.set(0, 0.056, 0);
-  phoneGroup.add(batt);
-
-  // ── REFLECTION PLANE ─────────────────────────────────────────────
-  const planeMat = new THREE.MeshPhysicalMaterial({
-    color: 0x0d0d18, metalness: 0.9, roughness: 0.08,
-    transparent: true, opacity: 0.5, side: THREE.DoubleSide,
-  });
-  const plane = new THREE.Mesh(new THREE.CircleGeometry(3.2, 48), planeMat);
-  plane.rotation.x = -Math.PI / 2;
-  plane.position.y = -0.16;
+  // Reflection plane
+  const planeMat = new THREE.MeshStandardMaterial({ color: 0x0d0d18, metalness: 0.8, roughness: 0.1, transparent: true, opacity: 0.6 });
+  const plane = new THREE.Mesh(new THREE.CylinderGeometry(3.5, 3.5, 0.01, 60), planeMat);
+  plane.position.y = -0.15;
   plane.receiveShadow = true;
   group.add(plane);
 
-  // ── LIGHTING ─────────────────────────────────────────────────────
-  scene.add(new THREE.AmbientLight(0xffffff, 0.12));
-
-  const key = new THREE.DirectionalLight(0xfff0d0, 3.0);
-  key.position.set(5, 10, 6);
-  key.castShadow = true;
+  // Lights
+  scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+  const key = new THREE.DirectionalLight(0xfff5e0, 2.5);
+  key.position.set(6, 10, 6); key.castShadow = true;
   key.shadow.mapSize.width = key.shadow.mapSize.height = 1024;
-  key.shadow.camera.near = 0.1;
-  key.shadow.camera.far = 20;
   scene.add(key);
+  const fill = new THREE.DirectionalLight(0x8899cc, 0.6);
+  fill.position.set(-6, 4, -4); scene.add(fill);
+  const rim = new THREE.DirectionalLight(0xC9A84C, 1.2);
+  rim.position.set(0, 3, -8); scene.add(rim);
+  const ledPoint = new THREE.PointLight(0xC9A84C, 4, 6);
+  ledPoint.position.set(0, 0.8, 0); group.add(ledPoint);
 
-  const fill = new THREE.DirectionalLight(0x8899cc, 0.5);
-  fill.position.set(-5, 3, -4);
-  scene.add(fill);
+  // ── Color control from UI ─────────────────────────────────────────
+  let manualColor: string | null = null;
 
-  const rim = new THREE.DirectionalLight(0xC9A84C, 1.0);
-  rim.position.set(0, 2, -8);
-  scene.add(rim);
+  function setLED(hex: number): void {
+    const c = new THREE.Color(hex);
+    ledMat.color.set(c);
+    ledMat.emissive.set(c);
+    ledPoint.color.set(c);
+  }
 
-  const topLight = new THREE.DirectionalLight(0xffffff, 0.4);
-  topLight.position.set(0, 12, 0);
-  scene.add(topLight);
+  (window as any).setLEDColor = (hex: string) => {
+    manualColor = hex;
+    setLED(parseInt(hex.replace('#', ''), 16));
+  };
 
-  const ledPoint = new THREE.PointLight(0xC9A84C, 3, 5);
-  ledPoint.position.set(0, 0.8, 0);
-  group.add(ledPoint);
+  setLED(0xC9A84C);
 
-  const screenPoint = new THREE.PointLight(0x4A90E2, 1.2, 2.5);
-  screenPoint.position.set(0.15, 0.4, 0);
-  group.add(screenPoint);
-
-  // ── DRAG ─────────────────────────────────────────────────────────
-  let isDragging = false;
-  let prevX = 0;
-  let dragVel = 0;
-
-  canvas.addEventListener('mousedown', (e: MouseEvent) => {
-    isDragging = true; prevX = e.clientX;
-    canvas.style.cursor = 'grabbing';
-  });
+  // ── Drag ─────────────────────────────────────────────────────────
+  let isDragging = false, prevX = 0, dragVel = 0;
+  canvas.addEventListener('mousedown', (e: MouseEvent) => { isDragging = true; prevX = e.clientX; canvas.style.cursor = 'grabbing'; });
   window.addEventListener('mouseup', () => { isDragging = false; canvas.style.cursor = 'grab'; });
-  window.addEventListener('mousemove', (e: MouseEvent) => {
-    if (!isDragging) return;
-    dragVel = (e.clientX - prevX) * 0.008;
-    group.rotation.y += dragVel;
-    prevX = e.clientX;
-  });
-  canvas.addEventListener('touchstart', (e: TouchEvent) => {
-    isDragging = true; prevX = e.touches[0].clientX;
-  }, { passive: true });
+  window.addEventListener('mousemove', (e: MouseEvent) => { if (!isDragging) return; dragVel = (e.clientX - prevX) * 0.012; group.rotation.y += dragVel; prevX = e.clientX; });
+  canvas.addEventListener('touchstart', (e: TouchEvent) => { isDragging = true; prevX = e.touches[0].clientX; }, { passive: true });
   window.addEventListener('touchend', () => { isDragging = false; });
-  window.addEventListener('touchmove', (e: TouchEvent) => {
-    if (!isDragging) return;
-    dragVel = (e.touches[0].clientX - prevX) * 0.008;
-    group.rotation.y += dragVel;
-    prevX = e.touches[0].clientX;
-  }, { passive: true });
+  window.addEventListener('touchmove', (e: TouchEvent) => { if (!isDragging) return; dragVel = (e.touches[0].clientX - prevX) * 0.012; group.rotation.y += dragVel; prevX = e.touches[0].clientX; }, { passive: true });
 
-  // ── RESIZE ───────────────────────────────────────────────────────
-  function resizeRenderer() {
-    const w = canvas.clientWidth || canvas.parentElement?.clientWidth || 480;
-    const h = canvas.clientHeight || 380;
-    if (w > 0 && h > 0) {
-      renderer.setSize(w, h);
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-    }
-  }
-  window.addEventListener('resize', resizeRenderer);
-  if (window.ResizeObserver) {
-    try { new ResizeObserver(resizeRenderer).observe(canvas.parentElement || canvas); } catch {}
-  }
-
-  // ── PAUSE ────────────────────────────────────────────────────────
+  // ── Pause when off-screen ───────────────────────────────────────
   let inView = true;
   new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; }, { threshold: 0 }).observe(canvas);
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && inView) animate();
-  });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && inView) animate(); });
 
-  // ── ANIMATION ────────────────────────────────────────────────────
-  let hue = 0;
-  let t = 0;
-  let chargingPhase = 0;
+  // ── Animation ──────────────────────────────────────────────────
+  let hue = 0, t = 0;
 
-  function animate() {
+  (function animate() {
     requestAnimationFrame(animate);
     if (!inView || document.hidden) return;
     t += 0.016;
-    chargingPhase += 0.02;
 
-    // Auto-rotate
-    if (!isDragging) {
-      dragVel *= 0.92;
-      group.rotation.y += 0.002 + dragVel;
-    }
+    if (!isDragging) { dragVel *= 0.95; group.rotation.y += 0.004 + dragVel; }
 
-    // Floating sutil
-    group.position.y = Math.sin(t * 0.4) * 0.05;
-
-    // Screen breathing
-    screenMat.emissiveIntensity = 0.4 + Math.sin(t * 0.8) * 0.2;
-
-    // Auto color cycle (solo si no hay color manual)
     if (!manualColor) {
-      hue += 0.0008;
-      const col = new THREE.Color().setHSL(hue % 1, 0.85, 0.5);
-      ledMat.color.set(col);
-      ledMat.emissive.set(col);
-      glowMat.color.set(col);
-      glowMat.emissive.set(col);
+      hue += 0.003;
+      const col = new THREE.Color().setHSL(hue % 1, 0.9, 0.55);
+      ledMat.color.set(col); ledMat.emissive.set(col);
       ledPoint.color.set(col);
     }
 
-    // Arc pulse
-    arcs.forEach((arc, i) => {
-      const pulse = Math.sin(chargingPhase + i * 1.2) * 0.12 + 0.65;
-      arc.material.opacity = pulse;
-      if (!manualColor) arc.material.emissiveIntensity = 0.3 + Math.sin(chargingPhase + i * 1.2) * 0.2;
-    });
-
-    // Partículas flotando lentamente
-    const pos = particles.geometry.attributes.position.array;
-    for (let i = 0; i < particleCount; i++) {
-      pos[i * 3 + 1] += Math.sin(t * 0.2 + i) * 0.0005;
-    }
-    particles.geometry.attributes.position.needsUpdate = true;
-
+    group.position.y = Math.sin(t * 0.6) * 0.07;
+    screenMat.emissiveIntensity = 0.5 + Math.sin(t * 1.2) * 0.3;
     renderer.render(scene, camera);
-  }
-  animate();
+  })();
 }
