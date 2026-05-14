@@ -32,6 +32,7 @@ import {
 (window as any).closeNl = () => import('./components/ui.js').then(m => m.closeNl());
 (window as any).claimDiscount = () => import('./components/ui.js').then(m => m.claimDiscount());
 (window as any).pickVar = (b: HTMLButtonElement, n: string) => import('./components/ui.js').then(m => m.pickVar(b, n));
+(window as any).openNl = () => import('./components/ui.js').then(m => m.openNl());
 (window as any).toggleWa = () => import('./components/ui.js').then(m => m.toggleWa());
 (window as any).closeWa = () => import('./components/ui.js').then(m => m.closeWa());
 (window as any).addBundle = () => import('./components/cart.js').then(m => m.addBundle());
@@ -111,6 +112,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initChat();
   initThreeScene();
   initStripe();
+  (await import('./components/ui.js')).showDiscountBadge();
   window.addEventListener('resize', applyHeaderOffset);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMobileNav(); });
   if ((document as any).fonts) (document as any).fonts.ready.then(applyHeaderOffset);

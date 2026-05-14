@@ -30,6 +30,23 @@ export function toggleFaq(btn: HTMLButtonElement): void {
 export function closeNl(): void {
   document.getElementById('nlOverlay')?.classList.remove('show');
   localStorage.setItem('lumicharge_nl_closed', '1');
+  showDiscountBadge();
+}
+
+export function openNl(): void {
+  document.getElementById('nlOverlay')?.classList.add('show');
+}
+
+export function showDiscountBadge(): void {
+  const badge = document.getElementById('discountBadge');
+  if (!badge) return;
+  if (localStorage.getItem('lumicharge_nl_subscribed')) {
+    badge.style.display = 'none';
+  } else if (localStorage.getItem('lumicharge_nl_closed')) {
+    badge.style.display = 'inline-flex';
+  } else {
+    badge.style.display = 'none';
+  }
 }
 
 export function shouldShowNl(): boolean {
@@ -69,6 +86,7 @@ export async function claimDiscount(): Promise<void> {
 
     if (data.ok) {
       localStorage.setItem('lumicharge_nl_subscribed', '1');
+      showDiscountBadge();
       if (code) { code.style.display = 'block'; code.textContent = 'LUMI10'; }
       if (btn) { btn.textContent = '✓ Código: LUMI10'; btn.style.background = 'var(--success)'; }
       setTimeout(closeNl, 3500);
