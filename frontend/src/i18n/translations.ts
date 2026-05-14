@@ -30,7 +30,7 @@ export const translations: Translations = {
   'cd.viendo':           { es:'viendo', en:'watching', zh:'正在查看', fr:'regardent', ar:'يشاهدون' },
 
   // ── Hero ──
-  'hero.badge':          { es:'Nuevo 2025 — Edición Premium', en:'New 2025 — Premium Edition', zh:'2025新款 — 高级版', fr:'Nouveau 2025 — Édition Premium', ar:'جديد 2025 — إصدار بريميوم' },
+  'hero.badge':          { es:'Nuevo 2026 — Edición Premium', en:'New 2026 — Premium Edition', zh:'2025新款 — 高级版', fr:'Nouveau 2026 — Édition Premium', ar:'جديد 2025 — إصدار بريميوم' },
   'hero.title1':         { es:'El cargador que', en:'The charger that', zh:'重新定义您空间的', fr:'Le chargeur qui', ar:'الشاحن الذي' },
   'hero.title2':         { es:'redefine', en:'redefines', zh:'重新定义', fr:'redéfinit', ar:'يعيد تعريف' },
   'hero.title3':         { es:'tu espacio', en:'your space', zh:'您的空间', fr:'votre espace', ar:'مساحتك' },
