@@ -42,3 +42,8 @@ npm-debug.log*
 # Backup
 backup.bat
 Backups/
+
+# Scripts de seguridad (locales, no subir a GitHub)
+scripts/security_scan.py
+scripts/db_optimize.py
+scripts/pre_deploy.py
