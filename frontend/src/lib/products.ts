@@ -91,14 +91,14 @@ export async function renderProducts(): Promise<void> {
     const acc = products.filter(p => p.category === 'accesorios' && p.active).slice(0, 3);
     if (acc.length > 0) {
       relatedContainer.innerHTML = acc.map(p => `
-        <div class="rel-card" onclick="showToast('Añadido: ${escHtml(p.name)}')">
+        <a href="/producto/${p.id}" class="rel-card" style="text-decoration:none;color:inherit;display:block;">
           <div class="rel-thumb">${p.image || '📦'}</div>
           <div class="rel-info">
             <div class="rel-stars">★★★★★</div>
             <div class="rel-name">${escHtml(p.name)}</div>
             <div><span class="rel-price">€${p.price.toFixed(2).replace('.', ',')}</span></div>
           </div>
-        </div>
+        </a>
       `).join('');
     }
   }
