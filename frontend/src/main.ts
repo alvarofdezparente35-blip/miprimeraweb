@@ -35,6 +35,7 @@ import {
 (window as any).openNl = () => import('./components/ui.js').then(m => m.openNl());
 (window as any).toggleWa = () => import('./components/ui.js').then(m => m.toggleWa());
 (window as any).closeWa = () => import('./components/ui.js').then(m => m.closeWa());
+(window as any).closeSp = () => { const t = document.getElementById('spT'); if (t) t.classList.remove('in'); };
 (window as any).addBundle = () => import('./components/cart.js').then(m => m.addBundle());
 (window as any).toggleChat = () => import('./components/ui.js').then(m => m.toggleChat());
 (window as any).sendChat = () => import('./components/ui.js').then(m => m.sendChat());

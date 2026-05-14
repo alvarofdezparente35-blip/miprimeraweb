@@ -1,7 +1,6 @@
 // ── Three.js 3D Product Viewer (v3 — estudio profesional) ────────────
 
 let sceneReady = false;
-let currentHue = 0;
 
 export function initThreeScene(): void {
   const canvas = document.getElementById('chargerCanvas') as HTMLCanvasElement | null;
@@ -183,31 +182,32 @@ function initCharger(canvas: HTMLCanvasElement, THREE: any): void {
   glowRing.position.y = 0.155;
   group.add(glowRing);
 
-  // ── CLICK TO CHANGE COLOR ────────────────────────────────────────
-  const raycaster = new THREE.Raycaster();
-  const mouse = new THREE.Vector2();
-  const colorPresets = [0, 0.08, 0.15, 0.55, 0.65, 0.75];
-  let colorIndex = 0;
+  // ── COLOR CONTROL (desde UI) ─────────────────────────────────────
+  let manualColor: string | null = null;
 
-  canvas.addEventListener('click', (e: MouseEvent) => {
-    const rect = canvas.getBoundingClientRect();
-    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    raycaster.setFromCamera(mouse, camera);
+  function applyLEDColor(colorHex: number): void {
+    const col = new THREE.Color(colorHex);
+    ledMat.color.set(col);
+    ledMat.emissive.set(col);
+    glowMat.color.set(col);
+    glowMat.emissive.set(col);
+    ledPoint.color.set(col);
+    // Update arcs too
+    arcs.forEach((arc: any) => {
+      arc.material.color.set(col);
+      arc.material.emissive.set(col);
+    });
+  }
 
-    const intersects = raycaster.intersectObject(ledRingMesh, false);
-    if (intersects.length > 0) {
-      colorIndex = (colorIndex + 1) % colorPresets.length;
-      currentHue = colorPresets[colorIndex];
-      const col = new THREE.Color().setHSL(currentHue, 0.85, 0.5);
+  // Expose for UI buttons
+  (window as any).setLEDColor = (hex: string) => {
+    manualColor = hex;
+    applyLEDColor(parseInt(hex.replace('#', ''), 16));
+  };
+  (window as any).resetLEDColor = () => { manualColor = null; };
 
-      ledMat.color.set(col);
-      ledMat.emissive.set(col);
-      glowMat.color.set(col);
-      glowMat.emissive.set(col);
-      ledPoint.color.set(col);
-    }
-  });
+  // Apply default Dorado
+  applyLEDColor(0xC9A84C);
 
   // ── PHONE ────────────────────────────────────────────────────────
   const phoneGroup = new THREE.Group();
@@ -339,16 +339,6 @@ function initCharger(canvas: HTMLCanvasElement, THREE: any): void {
     t += 0.016;
     chargingPhase += 0.02;
 
-    // Auto color cycle solo si no se ha clickeado
-    if (colorIndex === 0) hue += 0.0008;
-    const col = new THREE.Color().setHSL((colorIndex > 0 ? currentHue : hue) % 1, 0.85, 0.5);
-
-    ledMat.color.set(col);
-    ledMat.emissive.set(col);
-    glowMat.color.set(col);
-    glowMat.emissive.set(col);
-    ledPoint.color.set(col);
-
     // Auto-rotate
     if (!isDragging) {
       dragVel *= 0.92;
@@ -361,11 +351,22 @@ function initCharger(canvas: HTMLCanvasElement, THREE: any): void {
     // Screen breathing
     screenMat.emissiveIntensity = 0.4 + Math.sin(t * 0.8) * 0.2;
 
-    // Arc pulse (efecto carga)
+    // Auto color cycle (solo si no hay color manual)
+    if (!manualColor) {
+      hue += 0.0008;
+      const col = new THREE.Color().setHSL(hue % 1, 0.85, 0.5);
+      ledMat.color.set(col);
+      ledMat.emissive.set(col);
+      glowMat.color.set(col);
+      glowMat.emissive.set(col);
+      ledPoint.color.set(col);
+    }
+
+    // Arc pulse
     arcs.forEach((arc, i) => {
       const pulse = Math.sin(chargingPhase + i * 1.2) * 0.12 + 0.65;
       arc.material.opacity = pulse;
-      arc.material.emissiveIntensity = 0.3 + Math.sin(chargingPhase + i * 1.2) * 0.2;
+      if (!manualColor) arc.material.emissiveIntensity = 0.3 + Math.sin(chargingPhase + i * 1.2) * 0.2;
     });
 
     // Partículas flotando lentamente

@@ -104,11 +104,21 @@ export async function claimDiscount(): Promise<void> {
 }
 
 // ── Color variant ────────────────────────────────────────────────────
+const COLOR_MAP: Record<string, string> = {
+  Dorado: '#C9A84C', Violeta: '#8B4FCB', Azul: '#4A90E2',
+  Verde: '#2ECC71', Rojo: '#E74C3C',
+};
+
 export function pickVar(btn: HTMLButtonElement, name: string): void {
   document.querySelectorAll('.var-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   const el = document.getElementById('varName');
   if (el) el.textContent = name;
+  // Cambiar color LED del 3D
+  const hex = COLOR_MAP[name];
+  if (hex && typeof (window as any).setLEDColor === 'function') {
+    (window as any).setLEDColor(hex);
+  }
 }
 
 // ── WhatsApp ─────────────────────────────────────────────────────────
@@ -248,12 +258,7 @@ export function sendChat(): void {
 }
 
 export function initChat(): void {
-  setTimeout(() => {
-    if (!chatOpen) {
-      toggleChat();
-      setTimeout(() => toggleChat(), 8000);
-    }
-  }, 45000);
+  // Chat solo se abre manualmente, no auto
 }
 
 // ── Countdown ────────────────────────────────────────────────────────
@@ -306,7 +311,7 @@ export function initSocialProof(): void {
 
   setTimeout(() => {
     show();
-    setInterval(show, 10000); // cada 10 segundos
+    setInterval(show, 15000); // cada 15 segundos
   }, 8000); // primera vez a los 8 segundos
 }
 
@@ -364,6 +369,12 @@ export function initAnimatedCounters(): void {
 
   const section = document.querySelector('.social-section');
   if (section) obs.observe(section);
+}
+
+// ── Close social proof toast ─────────────────────────────────────────
+export function closeSp(): void {
+  const t = document.getElementById('spT');
+  if (t) t.classList.remove('in');
 }
 
 // ── Sticky bar ───────────────────────────────────────────────────────

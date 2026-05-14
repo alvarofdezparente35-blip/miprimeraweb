@@ -147,7 +147,7 @@
 
 <!-- SOCIAL PROOF TOASTS -->
 <div class="sp-wrap" id="spWrap">
-  <div class="sp-toast" id="spT"><div class="sp-av" id="spAv">MG</div><div class="sp-txt"><span class="sp-who" id="spWho">Miguel G.</span> <span class="sp-act" id="spAct">acaba de comprar desde Madrid</span><div class="sp-ago" id="spAgo">hace 2 min</div></div></div>
+  <div class="sp-toast" id="spT"><div class="sp-av" id="spAv">MG</div><div class="sp-txt"><span class="sp-who" id="spWho">Miguel G.</span> <span class="sp-act" id="spAct">acaba de comprar desde Madrid</span><div class="sp-ago" id="spAgo">hace 2 min</div></div><button onclick="closeSp()" style="background:none;border:none;color:var(--text-muted);font-size:.65rem;cursor:pointer;padding:0;line-height:1;opacity:.4;margin-left:.3rem;flex-shrink:0;">✕</button></div>
 </div>
 
 <!-- NEWSLETTER POPUP -->
@@ -290,7 +290,7 @@
           <div class="stock-indicator"><span class="stock-dot"></span> Solo 12 en stock</div>
         </div>
         <div class="product-img" style="padding:0;overflow:hidden;border-radius:12px;position:relative;">
-          <canvas id="chargerCanvas" style="width:100%;height:380px;display:block;cursor:grab;"></canvas>
+          <canvas id="chargerCanvas" style="width:100%;height:380px;display:block;cursor:grab;margin-top:8px;"></canvas>
           <div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:0.68rem;color:rgba(201,168,76,0.5);letter-spacing:0.1em;white-space:nowrap;" data-i18n="hero.arrastra">ARRASTRA PARA ROTAR</div>
         </div>
       </div>
@@ -797,7 +797,8 @@
   <div class="chat-panel" id="chatPanel">
     <div class="chat-head">
       <div class="chat-av">LC</div>
-      <div><div style="display:flex;align-items:center;gap:.4rem"><div class="chat-agent">Soporte LumiCharge</div><div class="chat-status"></div></div><div class="chat-online">En línea ahora</div></div>
+      <div style="flex:1;"><div style="display:flex;align-items:center;gap:.4rem"><div class="chat-agent">Soporte LumiCharge</div><div class="chat-status"></div></div><div class="chat-online">En línea ahora</div></div>
+      <button onclick="toggleChat()" style="background:none;border:none;color:var(--text-muted);font-size:.9rem;cursor:pointer;padding:0;line-height:1;opacity:.5;">✕</button>
     </div>
     <div class="chat-msgs" id="chatMsgs">
       <div class="chat-msg">¡Hola! 👋 Soy el asistente de LumiCharge. ¿En qué puedo ayudarte hoy?</div>
@@ -831,7 +832,8 @@
     <div class="search-results" id="searchResults"></div>
   </div>
 </div>
-<script>(function(){
+<script>function closeSp(){var t=document.getElementById('spT');if(t)t.classList.remove('in');}
+(function(){
   var u=localStorage.getItem('lumicharge_user'),e=document.getElementById('userName');
   var token=localStorage.getItem('lumicharge_token');
   // Inactivity check: 1 hora sin actividad = cerrar sesión
