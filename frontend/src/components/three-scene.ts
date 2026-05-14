@@ -81,35 +81,27 @@ function initCharger(canvas: HTMLCanvasElement, THREE: any): void {
   phoneGroup.rotation.y = 0.25;
   group.add(phoneGroup);
 
-  // Frame (borde de metal)
+  // Frame (borde de metal) — toda la altura del teléfono
   const frameMat = new THREE.MeshStandardMaterial({ color: 0xCD7F32, metalness: 0.8, roughness: 0.2 });
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.07, 1.74), frameMat);
-  frame.position.y = 0.005;
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.08, 1.74), frameMat);
   phoneGroup.add(frame);
 
-  // Back cover (naranja)
+  // Back cover (naranja) — ligeramente más pequeña que el frame, dentro de él
   const backMat = new THREE.MeshStandardMaterial({ color: 0xE87A3E, metalness: 0.1, roughness: 0.6 });
-  const back = new THREE.Mesh(new THREE.BoxGeometry(0.80, 0.055, 1.70), backMat);
-  back.position.y = 0.01;
+  const back = new THREE.Mesh(new THREE.BoxGeometry(0.80, 0.06, 1.70), backMat);
+  back.position.y = -0.005;
   phoneGroup.add(back);
 
-  // Screen
+  // Screen — incrustada en el frame, al mismo nivel que el borde
   const screenMat = new THREE.MeshStandardMaterial({ color: 0x0d1525, emissive: 0x1a3060, emissiveIntensity: 0.8, roughness: 0.1 });
-  const screen = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.04, 1.55), screenMat);
-  screen.position.y = 0.055;
+  const screen = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.025, 1.55), screenMat);
+  screen.position.y = 0.028;
   phoneGroup.add(screen);
 
-  // Camera bump (island)
-  const camMat = new THREE.MeshStandardMaterial({ color: 0x222233, metalness: 0.5, roughness: 0.3 });
-  const cam = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.06, 0.03, 12), camMat);
-  cam.rotation.x = Math.PI / 2;
-  cam.position.set(0, 0.055, -0.75);
-  phoneGroup.add(cam);
-
-  // Camera lens
+  // Camera lens (mini, en la parte superior)
   const lensMat = new THREE.MeshStandardMaterial({ color: 0x111122, metalness: 0.9, roughness: 0.1 });
-  const lens = new THREE.Mesh(new THREE.CircleGeometry(0.025, 12), lensMat);
-  lens.position.set(0, 0.058, -0.75);
+  const lens = new THREE.Mesh(new THREE.CircleGeometry(0.03, 12), lensMat);
+  lens.position.set(0, 0.042, -0.72);
   phoneGroup.add(lens);
 
   // Reflection plane
