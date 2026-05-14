@@ -57,19 +57,8 @@ function initCharger(canvas: HTMLCanvasElement, THREE: any): void {
   const group = new THREE.Group();
   scene.add(group);
 
-  // ── STUDIO BACKGROUND GRADIENT ────────────────────────────────────
-  const bgCanvas = document.createElement('canvas');
-  bgCanvas.width = 2; bgCanvas.height = 512;
-  const bgCtx = bgCanvas.getContext('2d')!;
-  const grad = bgCtx.createLinearGradient(0, 0, 0, 512);
-  grad.addColorStop(0, '#0A0A0F');
-  grad.addColorStop(0.4, '#0d0d1a');
-  grad.addColorStop(0.7, '#0f0f20');
-  grad.addColorStop(1, '#080810');
-  bgCtx.fillStyle = grad;
-  bgCtx.fillRect(0, 0, 2, 512);
-  const bgTexture = new THREE.CanvasTexture(bgCanvas);
-  scene.background = bgTexture;
+  // ── BACKGROUND ────────────────────────────────────────────────────
+  scene.background = new THREE.Color(0x0A0A0F);
 
   // ── FLOATING PARTICLES ───────────────────────────────────────────
   const particleCount = 60;
@@ -310,16 +299,18 @@ function initCharger(canvas: HTMLCanvasElement, THREE: any): void {
 
   // ── RESIZE ───────────────────────────────────────────────────────
   function resizeRenderer() {
-    const w = canvas.offsetWidth || canvas.parentElement?.offsetWidth || W;
-    const h = canvas.offsetHeight || H;
-    if (w > 0 && h > 0 && (w !== renderer.domElement.width || h !== renderer.domElement.height)) {
+    const w = canvas.clientWidth || canvas.parentElement?.clientWidth || 480;
+    const h = canvas.clientHeight || 380;
+    if (w > 0 && h > 0) {
       renderer.setSize(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
     }
   }
   window.addEventListener('resize', resizeRenderer);
-  new ResizeObserver(resizeRenderer).observe(canvas.parentElement || canvas);
+  if (window.ResizeObserver) {
+    try { new ResizeObserver(resizeRenderer).observe(canvas.parentElement || canvas); } catch {}
+  }
 
   // ── PAUSE ────────────────────────────────────────────────────────
   let inView = true;
