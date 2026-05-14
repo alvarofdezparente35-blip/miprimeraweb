@@ -136,8 +136,7 @@ async function loadAccount() {
       }
     `;
   } catch (err) {
-    localStorage.removeItem('lumicharge_token');
-    content.innerHTML = '<div class="login-msg"><div style="font-size:3rem;margin-bottom:1rem;">⏳</div><h2>Sesión expirada</h2><p style="margin-top:.5rem;color:var(--text-muted);">Vuelve a iniciar sesión para continuar.</p><p style="margin-top:1rem;"><a href="/login">Iniciar sesión</a></p></div>';
+    content.innerHTML = '<div class="login-msg"><div style="font-size:3rem;margin-bottom:1rem;">⏳</div><h2>Sesión no disponible</h2><p style="margin-top:.5rem;color:var(--text-muted);">No pudimos cargar tus datos. Puede ser un problema de conexión o que tu sesión haya expirado.</p><p style="margin-top:1rem;"><button onclick="location.reload()" style="background:var(--gold);color:var(--dark);border:none;padding:.6rem 1.5rem;border-radius:6px;font-size:.9rem;cursor:pointer;font-weight:600;">Reintentar</button> <a href="/login" style="color:var(--gold);margin-left:.5rem;">Iniciar sesión</a></p></div>';
   }
 }
 
