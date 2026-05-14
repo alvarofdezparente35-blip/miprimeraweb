@@ -39,14 +39,14 @@ function initCharger(canvas: HTMLCanvasElement, THREE: any): void {
   let dpr = Math.min(window.devicePixelRatio || 1, 2);
   if (navigator.hardwareConcurrency <= 4 || (navigator as any).deviceMemory <= 2) dpr = 1;
 
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.setSize(W, H);
   renderer.setPixelRatio(dpr);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.2;
-  renderer.setClearColor(0x000000, 0);
+  renderer.toneMappingExposure = 1.0;
+  renderer.setClearColor(0x0A0A0F, 1);
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0A0A0F);
@@ -71,7 +71,7 @@ function initCharger(canvas: HTMLCanvasElement, THREE: any): void {
 
   // ── Charger body ────────────────────────────────────────────────
   const bodyMat = new THREE.MeshStandardMaterial({
-    color: 0x1c1c2a, metalness: 0.92, roughness: 0.15,
+    color: 0x2a2a3a, metalness: 0.9, roughness: 0.2,
   });
   const body = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.18, 0.32, 64), bodyMat);
   body.receiveShadow = body.castShadow = true;
@@ -140,9 +140,9 @@ function initCharger(canvas: HTMLCanvasElement, THREE: any): void {
   applyColor(pending ? parseInt(pending.replace('#', ''), 16) : 0xC9A84C);
 
   // ── Lights ─────────────────────────────────────────────────────
-  scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.4));
 
-  const key = new THREE.DirectionalLight(0xfff0d0, 3.0);
+  const key = new THREE.DirectionalLight(0xfff0d0, 4.0);
   key.position.set(4, 10, 6); key.castShadow = true;
   key.shadow.mapSize.width = key.shadow.mapSize.height = 1024;
   scene.add(key);
