@@ -166,6 +166,7 @@
     <button class="tab" onclick="switchTab('newsletter', this)">📬 Newsletter</button>
     <button class="tab" onclick="switchTab('reviews', this)">⭐ Reseñas</button>
     <button class="tab" onclick="switchTab('audit', this)">📋 Auditoría</button>
+    <button class="tab" onclick="switchTab('landing', this)">🎯 Landing</button>
   </div>
 
   <!-- ── DASHBOARD TAB ── -->
@@ -360,6 +361,37 @@
       <thead><tr><th>Acción</th><th>Detalle</th><th>IP</th><th>Fecha</th></tr></thead>
       <tbody id="auditBody"></tbody>
     </table>
+  </div>
+
+  <!-- ── LANDING TAB ── -->
+  <div class="tab-content" id="tabLanding">
+    <div class="toolbar">
+      <button class="btn-add" onclick="openLandingModal()">+ Nueva landing</button>
+      <span style="color:#9B9AA8;font-size:.82rem;" id="lpCount"></span>
+    </div>
+    <table>
+      <thead><tr><th></th><th>Título</th><th>Slug</th><th>Dto.</th><th>Activa</th><th>Acción</th></tr></thead>
+      <tbody id="lpBody"></tbody>
+    </table>
+    <div class="empty" id="emptyLp">No hay landings.</div>
+  </div>
+
+  <!-- ── LANDING MODAL ── -->
+  <div class="modal-overlay" id="lpModal">
+    <div class="modal-box" style="max-width:600px;">
+      <h3 id="lpModalTitle">Nueva landing page</h3>
+      <label>Título *</label><input type="text" id="lpfTitle" placeholder="Cyber Monday 2026">
+      <label>Slug (URL) — /p/[slug]</label><input type="text" id="lpfSlug" placeholder="cyber-monday">
+      <label>Subtítulo</label><input type="text" id="lpfSub" placeholder="Ofertas increíbles por tiempo limitado">
+      <label>Contenido (HTML básico)</label><textarea id="lpfContent" rows="4" placeholder="Texto promocional..."></textarea>
+      <label>Icono (emoji)</label><input type="text" id="lpfImage" placeholder="🎯" maxlength="2">
+      <label>Descuento (%)</label><input type="number" id="lpfDiscount" min="0" max="100" placeholder="15">
+      <label>Código de descuento</label><input type="text" id="lpfCode" placeholder="CYBER15" style="text-transform:uppercase;letter-spacing:.1em;">
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeLandingModal()">Cancelar</button>
+        <button class="btn-save" onclick="saveLanding()">Guardar</button>
+      </div>
+    </div>
   </div>
 
   <!-- ── POST MODAL ── -->
@@ -998,7 +1030,65 @@ switchTab = function(tab, btn) {
   if (tab === 'newsletter') loadSubs();
   if (tab === 'reviews') loadReviews();
   if (tab === 'audit') loadAudit();
+  if (tab === 'landing') loadLandings();
 };
+
+// ── LANDING PAGES ──
+let allLandings = [];
+let editingLpId = null;
+
+async function loadLandings() {
+  const data = await apiCall('/api/landing-pages');
+  if (!data) return;
+  allLandings = data;
+  document.getElementById('lpCount').textContent = data.length + ' landings';
+  const tbody = document.getElementById('lpBody');
+  const empty = document.getElementById('emptyLp');
+  if (data.length === 0) { empty.style.display = 'block'; tbody.innerHTML = ''; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = data.map(p => `<tr style="${p.active ? '' : 'opacity:.5'}">
+    <td style="font-size:1.4rem;">${p.image || '🎯'}</td>
+    <td><strong>${esc(p.title)}</strong></td>
+    <td style="color:#9B9AA8;font-family:monospace;font-size:.78rem;">/p/${esc(p.slug)}</td>
+    <td style="color:#E74C3C;font-weight:600;">${p.discount > 0 ? '-' + p.discount + '%' : '—'}</td>
+    <td><span class="status" style="background:${p.active ? 'rgba(46,204,113,.12)' : 'rgba(231,76,60,.12)'};color:${p.active ? '#2ECC71' : '#E74C3C'}">${p.active ? 'Sí' : 'No'}</span></td>
+    <td class="actions">
+      <a href="/p/${esc(p.slug)}" target="_blank" class="btn-sm" style="text-decoration:none;display:inline-block;">🔗</a>
+      <button class="btn-sm" onclick="editLp('${p.id}')">✏️</button>
+      <button class="btn-sm ${p.active ? 'danger' : ''}" onclick="toggleLp('${p.id}', ${p.active ? 0 : 1})">${p.active ? 'Desactivar' : 'Activar'}</button>
+      <button class="btn-sm danger" onclick="deleteLp('${p.id}')">🗑️</button>
+    </td>
+  </tr>`).join('');
+}
+
+function openLandingModal(page) {
+  editingLpId = page ? page.id : null;
+  document.getElementById('lpModalTitle').textContent = page ? 'Editar landing' : 'Nueva landing';
+  document.getElementById('lpfTitle').value = page ? page.title : '';
+  document.getElementById('lpfSlug').value = page ? page.slug : '';
+  document.getElementById('lpfSub').value = page ? (page.subtitle || '') : '';
+  document.getElementById('lpfContent').value = page ? (page.content || '') : '';
+  document.getElementById('lpfImage').value = page ? (page.image || '🎯') : '🎯';
+  document.getElementById('lpfDiscount').value = page ? page.discount : 0;
+  document.getElementById('lpfCode').value = page ? (page.discount_code || '') : '';
+  document.getElementById('lpModal').classList.add('open');
+}
+
+function closeLandingModal() { document.getElementById('lpModal').classList.remove('open'); editingLpId = null; }
+
+async function saveLanding() {
+  const title = document.getElementById('lpfTitle').value.trim();
+  if (!title) { showNotification('⚠️ Título requerido'); return; }
+  const data = { title, slug: document.getElementById('lpfSlug').value.trim() || undefined, subtitle: document.getElementById('lpfSub').value.trim(), content: document.getElementById('lpfContent').value.trim(), image: document.getElementById('lpfImage').value || '🎯', discount: Number(document.getElementById('lpfDiscount').value) || 0, discount_code: document.getElementById('lpfCode').value.trim().toUpperCase() };
+  let result;
+  if (editingLpId) result = await apiCall('/api/landing-pages/' + editingLpId, { method: 'PUT', body: JSON.stringify(data) });
+  else result = await apiCall('/api/landing-pages', { method: 'POST', body: JSON.stringify(data) });
+  if (result) { closeLandingModal(); loadLandings(); showNotification(editingLpId ? '✓ Actualizada' : '✓ Creada'); }
+}
+
+async function toggleLp(id, active) { await apiCall('/api/landing-pages/' + id, { method: 'PUT', body: JSON.stringify({ active }) }); loadLandings(); }
+async function deleteLp(id) { if (!confirm('¿Eliminar?')) return; await apiCall('/api/landing-pages/' + id, { method: 'DELETE' }); loadLandings(); showNotification('🗑️ Eliminada'); }
+function editLp(id) { const p = allLandings.find(x => x.id === id); if (p) openLandingModal(p); }
 
 // ── AUDIT LOG ──
 async function loadAudit() {

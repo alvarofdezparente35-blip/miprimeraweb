@@ -1024,6 +1024,79 @@ app.get('/tracking', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'tracking.html'));
 });
 
+// ── Landing pages API ────────────────────────────────────────────────
+app.get('/api/landing-pages', authenticateToken, (req, res) => {
+  try { res.json(db.getAllLandingPages()); }
+  catch { res.status(500).json({ error: 'Error' }); }
+});
+
+app.post('/api/landing-pages', authenticateToken, adminWriteLimiter, (req, res) => {
+  try {
+    const { title, slug, subtitle, content, image, discount, discount_code } = req.body;
+    if (!title) { res.status(400).json({ error: 'Título requerido' }); return; }
+    const page = db.createLandingPage({ title, slug: slug || undefined, subtitle, content, image, discount: Number(discount) || 0, discount_code });
+    res.status(201).json(page);
+  } catch (err: any) {
+    if (err?.code?.startsWith('SQLITE_CONSTRAINT')) { res.status(400).json({ error: 'Este slug ya existe' }); return; }
+    logger.error({ err }, 'Error creating landing page');
+    res.status(500).json({ error: 'Error' });
+  }
+});
+
+app.put('/api/landing-pages/:id', authenticateToken, adminWriteLimiter, (req, res) => {
+  try {
+    const ok = db.updateLandingPage(req.params.id as string, req.body);
+    if (!ok) { res.status(404).json({ error: 'No encontrada' }); return; }
+    res.json({ ok: true });
+  } catch { res.status(500).json({ error: 'Error' }); }
+});
+
+app.delete('/api/landing-pages/:id', authenticateToken, adminWriteLimiter, (req, res) => {
+  try {
+    if (!db.deleteLandingPage(req.params.id as string)) { res.status(404).json({ error: 'No encontrada' }); return; }
+    res.json({ ok: true });
+  } catch { res.status(500).json({ error: 'Error' }); }
+});
+
+// ── Landing page public route ────────────────────────────────────────
+app.get('/p/:slug', (req, res) => {
+  const page = db.getLandingPageBySlug(req.params.slug as string);
+  if (!page) { res.status(404).sendFile(path.join(__dirname, 'public', 'index.html')); return; }
+
+  const discountHtml = page.discount > 0
+    ? `<div style="background:rgba(231,76,60,.1);border:1px dashed rgba(231,76,60,.4);border-radius:12px;padding:1.5rem;text-align:center;margin:2rem 0;">
+        <div style="font-size:2rem;font-weight:700;color:#E74C3C;letter-spacing:.1em;">${page.discount}% DESCUENTO</div>
+        <div style="font-size:1.1rem;color:var(--text-muted);margin-top:.3rem;">Código: <span style="color:#C9A84C;font-weight:700;letter-spacing:.15em;">${page.discount_code || 'LUMI' + page.discount}</span></div>
+      </div>` : '';
+
+  res.send(`<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${page.title} — LumiCharge</title><meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&display=swap"></noscript>
+<link rel="stylesheet" href="/src/style.css">
+<style>
+  .lp-wrap { max-width:700px; margin:0 auto; padding:3rem 5% 5rem; text-align:center; min-height:100vh; display:flex; flex-direction:column; justify-content:center; }
+  .lp-icon { font-size:6rem; display:block; margin-bottom:1rem; }
+  .lp-title { font-size:clamp(2rem,4vw,3.5rem); font-weight:700; margin-bottom:.5rem; }
+  .lp-sub { font-size:1.1rem; color:var(--text-muted); margin-bottom:1.5rem; line-height:1.6; max-width:500px; margin-left:auto; margin-right:auto; }
+  .lp-content { font-size:.95rem; color:var(--text-muted); line-height:1.7; max-width:550px; margin:0 auto; }
+  .lp-cta { display:inline-block; background:var(--gold); color:var(--dark); padding:.9rem 2.5rem; border-radius:8px; font-size:1rem; font-weight:700; text-decoration:none; margin-top:1.5rem; transition:transform .2s; }
+  .lp-cta:hover { transform:translateY(-2px); }
+  .lp-footer { margin-top:3rem; font-size:.8rem; color:var(--text-muted); }
+</style></head><body>
+<div class="lp-wrap">
+  <span class="lp-icon">${page.image || '🎯'}</span>
+  <h1 class="lp-title">${page.title}</h1>
+  ${page.subtitle ? '<p class="lp-sub">' + page.subtitle + '</p>' : ''}
+  ${discountHtml}
+  ${page.content ? '<div class="lp-content">' + page.content + '</div>' : ''}
+  <a href="/" class="lp-cta">Ver oferta →</a>
+  <div class="lp-footer">LumiCharge Technologies S.L.</div>
+</div></body></html>`);
+});
+
 // ── Blog pages ────────────────────────────────────────────────────────
 app.get('/blog', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'blog.html'));

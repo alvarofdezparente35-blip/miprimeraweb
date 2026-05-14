@@ -197,6 +197,19 @@ export function init(): void {
       created       TEXT DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS landing_pages (
+      id          TEXT PRIMARY KEY,
+      slug        TEXT NOT NULL UNIQUE,
+      title       TEXT NOT NULL,
+      subtitle    TEXT DEFAULT '',
+      content     TEXT DEFAULT '',
+      image       TEXT DEFAULT '🎯',
+      discount    REAL DEFAULT 0,
+      discount_code TEXT DEFAULT '',
+      active      INTEGER DEFAULT 1,
+      created     TEXT DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS posts (
       id          TEXT PRIMARY KEY,
       slug        TEXT NOT NULL UNIQUE,
@@ -548,6 +561,55 @@ export function getReviewStats(productId: string): { average: number; total: num
 
 export function deleteReview(id: string): boolean {
   return db.prepare('DELETE FROM reviews WHERE id = ?').run(id).changes > 0;
+}
+
+// ── Landing pages ────────────────────────────────────────────────────
+export interface LandingPage {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string;
+  content: string;
+  image: string;
+  discount: number;
+  discount_code: string;
+  active: number;
+  created: string;
+}
+
+export function createLandingPage(input: { title: string; slug?: string; subtitle?: string; content?: string; image?: string; discount?: number; discount_code?: string }): LandingPage {
+  const id = uuidv4();
+  const slug = input.slug || input.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + id.slice(0, 4);
+  db.prepare('INSERT INTO landing_pages (id, slug, title, subtitle, content, image, discount, discount_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(id, slug, input.title, input.subtitle || '', input.content || '', input.image || '🎯', input.discount ?? 0, input.discount_code || '');
+  return db.prepare('SELECT * FROM landing_pages WHERE id = ?').get(id) as LandingPage;
+}
+
+export function getAllLandingPages(): LandingPage[] {
+  return db.prepare('SELECT * FROM landing_pages ORDER BY created DESC').all() as LandingPage[];
+}
+
+export function getLandingPageBySlug(slug: string): LandingPage | undefined {
+  return db.prepare('SELECT * FROM landing_pages WHERE slug = ? AND active = 1').get(slug) as LandingPage | undefined;
+}
+
+export function updateLandingPage(id: string, input: Partial<{ title: string; subtitle: string; content: string; slug: string; image: string; discount: number; discount_code: string; active: number }>): boolean {
+  const fields: string[] = []; const values: any[] = [];
+  if (input.title !== undefined) { fields.push('title = ?'); values.push(input.title); }
+  if (input.subtitle !== undefined) { fields.push('subtitle = ?'); values.push(input.subtitle); }
+  if (input.content !== undefined) { fields.push('content = ?'); values.push(input.content); }
+  if (input.slug !== undefined) { fields.push('slug = ?'); values.push(input.slug); }
+  if (input.image !== undefined) { fields.push('image = ?'); values.push(input.image); }
+  if (input.discount !== undefined) { fields.push('discount = ?'); values.push(input.discount); }
+  if (input.discount_code !== undefined) { fields.push('discount_code = ?'); values.push(input.discount_code); }
+  if (input.active !== undefined) { fields.push('active = ?'); values.push(input.active); }
+  if (fields.length === 0) return false;
+  values.push(id);
+  return db.prepare(`UPDATE landing_pages SET ${fields.join(', ')} WHERE id = ?`).run(...values).changes > 0;
+}
+
+export function deleteLandingPage(id: string): boolean {
+  return db.prepare('DELETE FROM landing_pages WHERE id = ?').run(id).changes > 0;
 }
 
 export function seedPosts(): void {
