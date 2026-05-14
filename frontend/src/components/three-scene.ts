@@ -86,6 +86,35 @@ function initCharger(canvas: HTMLCanvasElement, THREE: any): void {
   ledRing.position.y = 0.155;
   group.add(ledRing);
 
+  // iPhone naranja encima del cargador
+  const phoneGroup = new THREE.Group();
+  phoneGroup.position.set(0, 0.18, 0);
+  phoneGroup.rotation.y = 0.3;
+  group.add(phoneGroup);
+
+  // Frame (borde metálico)
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0xCD7F32, metalness: 0.8, roughness: 0.2 });
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.07, 1.70), frameMat);
+  phoneGroup.add(frame);
+
+  // Back cover naranja
+  const backMat = new THREE.MeshStandardMaterial({ color: 0xE87A3E, metalness: 0.1, roughness: 0.6 });
+  const back = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.055, 1.66), backMat);
+  back.position.y = -0.005;
+  phoneGroup.add(back);
+
+  // Pantalla (incrustada)
+  const screenMat = new THREE.MeshStandardMaterial({ color: 0x0d1525, emissive: 0x1a3060, emissiveIntensity: 0.6, roughness: 0.1 });
+  const screen = new THREE.Mesh(new THREE.BoxGeometry(0.70, 0.025, 1.52), screenMat);
+  screen.position.y = 0.025;
+  phoneGroup.add(screen);
+
+  // Lente cámara
+  const lensMat = new THREE.MeshStandardMaterial({ color: 0x111122, metalness: 0.9, roughness: 0.1 });
+  const lens = new THREE.Mesh(new THREE.CircleGeometry(0.03, 12), lensMat);
+  lens.position.set(0, 0.038, -0.70);
+  phoneGroup.add(lens);
+
   // Lights
   scene.add(new THREE.AmbientLight(0xffffff, 0.3));
   const key = new THREE.DirectionalLight(0xfff5e0, 3);
