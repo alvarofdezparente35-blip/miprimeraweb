@@ -308,6 +308,19 @@ function initCharger(canvas: HTMLCanvasElement, THREE: any): void {
     prevX = e.touches[0].clientX;
   }, { passive: true });
 
+  // ── RESIZE ───────────────────────────────────────────────────────
+  function resizeRenderer() {
+    const w = canvas.offsetWidth || canvas.parentElement?.offsetWidth || W;
+    const h = canvas.offsetHeight || H;
+    if (w > 0 && h > 0 && (w !== renderer.domElement.width || h !== renderer.domElement.height)) {
+      renderer.setSize(w, h);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+  }
+  window.addEventListener('resize', resizeRenderer);
+  new ResizeObserver(resizeRenderer).observe(canvas.parentElement || canvas);
+
   // ── PAUSE ────────────────────────────────────────────────────────
   let inView = true;
   new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; }, { threshold: 0 }).observe(canvas);
